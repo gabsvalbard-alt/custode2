@@ -1,0 +1,30 @@
+# Build Results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa]rchive/
+bin/
+obj/
+*.pdb
+
+# Visual Studio files
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.sln.docstates
+
+# Custode2 Vault Data & Backups (CRITICAL: NEVER COMMIT VAULT DATA)
+vault.dat
+*.bak
+*.dat
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
