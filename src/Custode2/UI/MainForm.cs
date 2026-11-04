@@ -76,8 +76,10 @@ namespace Custode2.UI
         {
             this.Text = "Custode delle chiavi 2.0 - Gestione";
             this.Icon = TrayAppContext.GetAppIcon();
-            this.Size = new Size(950, 640);
-            this.MinimumSize = new Size(880, 560);
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
+            this.MinimizeBox = true;
+            this.ClientSize = new Size(960, 610);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Font = new Font("Segoe UI", 9.5f, FontStyle.Regular);
             this.BackColor = Color.FromArgb(245, 246, 248);
@@ -124,10 +126,10 @@ namespace Custode2.UI
                 MultiSelect = false
             };
             lvCredentials.Columns.Add("Titolo / Servizio", 220);
-            lvCredentials.Columns.Add("Nome Utente / Email", 200);
-            lvCredentials.Columns.Add("Scorciatoia", 110);
-            lvCredentials.Columns.Add("Filtro App / Sicurezza", 150);
-            lvCredentials.Columns.Add("Template Macro", 220);
+            lvCredentials.Columns.Add("Nome Utente / Email", 210);
+            lvCredentials.Columns.Add("Scorciatoia", 115);
+            lvCredentials.Columns.Add("Filtro App / Sicurezza", 155);
+            lvCredentials.Columns.Add("Template Macro", 230);
             lvCredentials.DoubleClick += (s, e) => EditSelected();
 
             var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 55, Padding = new Padding(10) };
@@ -148,16 +150,10 @@ namespace Custode2.UI
             btnTestMacro = new Button
             {
                 Text = "⏱️ Prova Inserimento (3s)",
-                Size = new Size(200, 32),
-                Anchor = AnchorStyles.Top | AnchorStyles.Right
+                Size = new Size(205, 32),
+                Location = new Point(735, 10)
             };
-            btnTestMacro.Location = new Point(pnlBottom.Width - 215, 10);
             btnTestMacro.Click += (s, e) => TestMacroCountdown();
-
-            pnlBottom.Resize += (s, e) =>
-            {
-                btnTestMacro.Location = new Point(pnlBottom.Width - 215, 10);
-            };
 
             pnlBottom.Controls.Add(btnAdd);
             pnlBottom.Controls.Add(btnEdit);
@@ -176,7 +172,7 @@ namespace Custode2.UI
             int y = 15;
 
             // Group 1: Scorciatoia Globale
-            var gbHotkey = new GroupBox { Text = "Scorciatoia Globale di Richiamo", Location = new Point(15, y), Size = new Size(880, 80) };
+            var gbHotkey = new GroupBox { Text = "Scorciatoia Globale di Richiamo", Location = new Point(15, y), Size = new Size(910, 80) };
             var lblPicker = new Label { Text = "Combinazione di tasti:", Location = new Point(15, 30), AutoSize = true };
             txtPickerHotkey = new TextBox { Location = new Point(165, 27), Width = 260 };
             var lblPickerHint = new Label { Text = "Es. Ctrl+Alt+Space, Win+Shift+C, Ctrl+Alt+C", Location = new Point(440, 30), AutoSize = true, ForeColor = Color.Gray };
@@ -187,7 +183,7 @@ namespace Custode2.UI
 
             // Group 2: Posizione di Comparsa
             y += 95;
-            var gbPos = new GroupBox { Text = "Posizione di Comparsa Popup", Location = new Point(15, y), Size = new Size(880, 75) };
+            var gbPos = new GroupBox { Text = "Posizione di Comparsa Popup", Location = new Point(15, y), Size = new Size(910, 75) };
             rbPosCursor = new RadioButton { Text = "Posizione cursore del mouse (predefinita)", Location = new Point(20, 30), AutoSize = true, Checked = true };
             rbPosCenter = new RadioButton { Text = "Centro dello schermo", Location = new Point(340, 30), AutoSize = true };
             gbPos.Controls.Add(rbPosCursor);
@@ -196,7 +192,7 @@ namespace Custode2.UI
 
             // Group 3: Personalizzazione Visiva (Trasparenza e Colore)
             y += 90;
-            var gbStyle = new GroupBox { Text = "Aspetto Grafico & Trasparenza", Location = new Point(15, y), Size = new Size(880, 130) };
+            var gbStyle = new GroupBox { Text = "Aspetto Grafico & Trasparenza", Location = new Point(15, y), Size = new Size(910, 130) };
 
             var lblOpacity = new Label { Text = "Livello trasparenza:", Location = new Point(15, 30), AutoSize = true };
             tbOpacity = new TrackBar { Location = new Point(165, 25), Width = 220, Minimum = 30, Maximum = 100, TickFrequency = 10, SmallChange = 5, LargeChange = 10 };
@@ -241,7 +237,7 @@ namespace Custode2.UI
 
             // Group 4: Sicurezza Clipboard
             y += 145;
-            var gbClipboard = new GroupBox { Text = "Sicurezza Appunti (Copia Password)", Location = new Point(15, y), Size = new Size(880, 75) };
+            var gbClipboard = new GroupBox { Text = "Sicurezza Appunti (Copia Password)", Location = new Point(15, y), Size = new Size(910, 75) };
             var lblClipboard = new Label { Text = "Svuota appunti dopo:", Location = new Point(15, 28), AutoSize = true };
             numClipboardSeconds = new NumericUpDown { Location = new Point(165, 26), Width = 70, Minimum = 3, Maximum = 120, Value = 15 };
             var lblSec = new Label { Text = "secondi", Location = new Point(245, 28), AutoSize = true };
@@ -267,7 +263,7 @@ namespace Custode2.UI
             int y = 15;
 
             // Group 1: Parametri Macro Predefiniti
-            var gbMacro = new GroupBox { Text = "Parametri di Digitazione Macro", Location = new Point(15, y), Size = new Size(880, 125) };
+            var gbMacro = new GroupBox { Text = "Parametri di Digitazione Macro", Location = new Point(15, y), Size = new Size(910, 125) };
 
             var lblDefTemplate = new Label { Text = "Template predefinito nuove voci:", Location = new Point(15, 30), AutoSize = true };
             txtDefaultTemplate = new TextBox { Location = new Point(240, 27), Width = 360 };
@@ -287,18 +283,18 @@ namespace Custode2.UI
 
             // Group 2: Processi Autorizzati (Whitelist) e Blacklist di Sicurezza
             y += 140;
-            var gbWhitelist = new GroupBox { Text = "✅ Whitelist (Bypass Verifica Password)", Location = new Point(15, y), Size = new Size(435, 225) };
+            var gbWhitelist = new GroupBox { Text = "✅ Whitelist (Bypass Verifica Password)", Location = new Point(15, y), Size = new Size(445, 225) };
 
             var lblWhitelistSub = new Label { Text = "Bypass per app aziendali fidate (es. SAP GUI, RDP):", Location = new Point(15, 25), AutoSize = true, ForeColor = Color.DarkSlateGray, Font = new Font("Segoe UI", 8.5f) };
-            lbWhitelist = new ListBox { Location = new Point(15, 52), Width = 235, Height = 150 };
+            lbWhitelist = new ListBox { Location = new Point(15, 52), Width = 245, Height = 150 };
 
-            txtNewWhitelistProcess = new TextBox { Location = new Point(260, 52), Width = 160 };
-            var lblProcessHint = new Label { Text = "Es. saplogon.exe, mstsc.exe", Location = new Point(260, 78), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8f) };
+            txtNewWhitelistProcess = new TextBox { Location = new Point(270, 52), Width = 160 };
+            var lblProcessHint = new Label { Text = "Es. saplogon.exe, mstsc.exe", Location = new Point(270, 78), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8f) };
 
-            btnAddProcess = new Button { Text = "➕ Aggiungi", Location = new Point(260, 105), Width = 160, Height = 30 };
+            btnAddProcess = new Button { Text = "➕ Aggiungi", Location = new Point(270, 105), Width = 160, Height = 30 };
             btnAddProcess.Click += (s, e) => AddWhitelistProcess();
 
-            btnRemoveProcess = new Button { Text = "🗑️ Rimuovi", Location = new Point(260, 145), Width = 160, Height = 30 };
+            btnRemoveProcess = new Button { Text = "🗑️ Rimuovi", Location = new Point(270, 145), Width = 160, Height = 30 };
             btnRemoveProcess.Click += (s, e) => RemoveWhitelistProcess();
 
             gbWhitelist.Controls.Add(lblWhitelistSub);
@@ -310,18 +306,18 @@ namespace Custode2.UI
             pnl.Controls.Add(gbWhitelist);
 
             // Group 3: Blacklist (Blocco Totale Inserimento)
-            var gbBlacklist = new GroupBox { Text = "🚫 Blacklist (Blocco Totale Inserimento)", Location = new Point(460, y), Size = new Size(435, 225) };
+            var gbBlacklist = new GroupBox { Text = "🚫 Blacklist (Blocco Totale Inserimento)", Location = new Point(480, y), Size = new Size(445, 225) };
 
             var lblBlacklistSub = new Label { Text = "Inserimento sempre bloccato (es. Teams, Slack, Discord):", Location = new Point(15, 25), AutoSize = true, ForeColor = Color.FromArgb(180, 40, 20), Font = new Font("Segoe UI", 8.5f, FontStyle.Bold) };
-            lbBlacklist = new ListBox { Location = new Point(15, 52), Width = 235, Height = 150 };
+            lbBlacklist = new ListBox { Location = new Point(15, 52), Width = 245, Height = 150 };
 
-            txtNewBlacklistProcess = new TextBox { Location = new Point(260, 52), Width = 160 };
-            var lblBlacklistHint = new Label { Text = "Es. teams.exe, slack.exe", Location = new Point(260, 78), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8f) };
+            txtNewBlacklistProcess = new TextBox { Location = new Point(270, 52), Width = 160 };
+            var lblBlacklistHint = new Label { Text = "Es. teams.exe, slack.exe", Location = new Point(270, 78), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8f) };
 
-            btnAddBlacklistProcess = new Button { Text = "➕ Aggiungi", Location = new Point(260, 105), Width = 160, Height = 30 };
+            btnAddBlacklistProcess = new Button { Text = "➕ Aggiungi", Location = new Point(270, 105), Width = 160, Height = 30 };
             btnAddBlacklistProcess.Click += (s, e) => AddBlacklistProcess();
 
-            btnRemoveBlacklistProcess = new Button { Text = "🗑️ Rimuovi", Location = new Point(260, 145), Width = 160, Height = 30 };
+            btnRemoveBlacklistProcess = new Button { Text = "🗑️ Rimuovi", Location = new Point(270, 145), Width = 160, Height = 30 };
             btnRemoveBlacklistProcess.Click += (s, e) => RemoveBlacklistProcess();
 
             gbBlacklist.Controls.Add(lblBlacklistSub);
@@ -346,7 +342,7 @@ namespace Custode2.UI
             int y = 15;
 
             // Group 1: Opzioni di Avvio
-            var gbStartup = new GroupBox { Text = "Opzioni di Avvio e Notifiche", Location = new Point(15, y), Size = new Size(880, 95) };
+            var gbStartup = new GroupBox { Text = "Opzioni di Avvio e Notifiche", Location = new Point(15, y), Size = new Size(910, 95) };
             chkStartWithWindows = new CheckBox { Text = "Esegui automaticamente Custode delle chiavi all'avvio di Windows", Location = new Point(20, 26), AutoSize = true };
             chkStartupNotification = new CheckBox { Text = "Mostra notifica a fumetto all'avvio dell'applicazione", Location = new Point(20, 56), AutoSize = true };
             gbStartup.Controls.Add(chkStartWithWindows);
@@ -355,11 +351,11 @@ namespace Custode2.UI
 
             // Group 2: Archivio Crittografato DPAPI
             y += 110;
-            var gbStorage = new GroupBox { Text = "Archivio Crittografato (Windows DPAPI)", Location = new Point(15, y), Size = new Size(880, 110) };
+            var gbStorage = new GroupBox { Text = "Archivio Crittografato (Windows DPAPI)", Location = new Point(15, y), Size = new Size(910, 110) };
             var lblPath = new Label { Text = "Posizione file vault:", Location = new Point(15, 25), AutoSize = true };
-            txtVaultPath = new TextBox { ReadOnly = true, Text = DpapiStorage.GetVaultFilePath(), Location = new Point(15, 45), Width = 660, BackColor = Color.White };
+            txtVaultPath = new TextBox { ReadOnly = true, Text = DpapiStorage.GetVaultFilePath(), Location = new Point(15, 45), Width = 690, BackColor = Color.White };
 
-            btnOpenFolder = new Button { Text = "📁 Apri Cartella Vault", Location = new Point(685, 43), Width = 175, Height = 28 };
+            btnOpenFolder = new Button { Text = "📁 Apri Cartella Vault", Location = new Point(715, 43), Width = 180, Height = 28 };
             btnOpenFolder.Click += (s, e) =>
             {
                 string dir = Path.GetDirectoryName(DpapiStorage.GetVaultFilePath());
