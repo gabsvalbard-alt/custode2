@@ -69,6 +69,7 @@
     <Compile Include="UI\EditCredentialDialog.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="UI\ProcessPickerHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.ico" />

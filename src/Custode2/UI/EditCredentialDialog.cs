@@ -102,10 +102,40 @@ namespace Custode2.UI
             // Process / Window Filter (SAP / Whitelist)
             y += spacing + 12;
             var lblFilter = new Label { Text = "Filtro Processo / App:", Location = new Point(labelX, y + 3), AutoSize = true };
-            txtAppFilter = new TextBox { Location = new Point(inputX, y), Width = inputWidth };
-            var lblFilterHint = new Label { Text = "Es. saplogon.exe o parte del titolo finestra (opzionale)", Location = new Point(inputX, y + 26), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
+            txtAppFilter = new TextBox { Location = new Point(inputX, y), Width = inputWidth - 110 };
+
+            var btnMirino = new Button
+            {
+                Text = "🎯 Mirino",
+                Location = new Point(inputX + inputWidth - 102, y - 1),
+                Size = new Size(102, 27),
+                BackColor = Color.FromArgb(240, 243, 246),
+                FlatStyle = FlatStyle.Flat
+            };
+            btnMirino.Click += (s, e) =>
+            {
+                this.WindowState = FormWindowState.Minimized;
+                ProcessPickerHelper.StartPicking(this, result =>
+                {
+                    this.WindowState = FormWindowState.Normal;
+                    this.BringToFront();
+                    this.Activate();
+
+                    if (result != null && !string.IsNullOrEmpty(result.ProcessName))
+                    {
+                        txtAppFilter.Text = result.ProcessName;
+                        if (string.IsNullOrEmpty(txtTitle.Text) && !string.IsNullOrEmpty(result.WindowTitle))
+                        {
+                            txtTitle.Text = result.WindowTitle;
+                        }
+                    }
+                });
+            };
+
+            var lblFilterHint = new Label { Text = "Es. saplogon.exe o usa '🎯 Mirino' per toccare la finestra dell'app", Location = new Point(inputX, y + 26), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
             this.Controls.Add(lblFilter);
             this.Controls.Add(txtAppFilter);
+            this.Controls.Add(btnMirino);
             this.Controls.Add(lblFilterHint);
 
             // Bypass Security Check Checkbox

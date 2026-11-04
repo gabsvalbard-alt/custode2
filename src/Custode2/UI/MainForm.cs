@@ -135,18 +135,28 @@ namespace Custode2.UI
 
             var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 55, Padding = new Padding(10) };
 
-            btnAdd = new Button { Text = "➕ Aggiungi", Location = new Point(10, 10), Size = new Size(110, 32), BackColor = Color.FromArgb(0, 120, 215), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnAdd = new Button { Text = "➕ Aggiungi", Location = new Point(10, 10), Size = new Size(105, 32), BackColor = Color.FromArgb(0, 120, 215), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnAdd.FlatAppearance.BorderSize = 0;
             btnAdd.Click += (s, e) => AddCredential();
 
-            btnEdit = new Button { Text = "✏️ Modifica", Location = new Point(130, 10), Size = new Size(100, 32) };
+            btnEdit = new Button { Text = "✏️ Modifica", Location = new Point(120, 10), Size = new Size(95, 32) };
             btnEdit.Click += (s, e) => EditSelected();
 
-            btnDuplicate = new Button { Text = "📄 Duplica", Location = new Point(240, 10), Size = new Size(100, 32) };
+            btnDuplicate = new Button { Text = "📄 Duplica", Location = new Point(220, 10), Size = new Size(95, 32) };
             btnDuplicate.Click += (s, e) => DuplicateSelected();
 
-            btnDelete = new Button { Text = "🗑️ Elimina", Location = new Point(350, 10), Size = new Size(100, 32), ForeColor = Color.FromArgb(180, 40, 20) };
+            btnDelete = new Button { Text = "🗑️ Elimina", Location = new Point(320, 10), Size = new Size(95, 32), ForeColor = Color.FromArgb(180, 40, 20) };
             btnDelete.Click += (s, e) => DeleteSelected();
+
+            var btnMirino = new Button
+            {
+                Text = "🎯 Rileva con Mirino",
+                Location = new Point(420, 10),
+                Size = new Size(160, 32),
+                BackColor = Color.FromArgb(240, 243, 246),
+                FlatStyle = FlatStyle.Flat
+            };
+            btnMirino.Click += (s, e) => DetectProcessWithMirino();
 
             btnTestMacro = new Button
             {
@@ -160,6 +170,7 @@ namespace Custode2.UI
             pnlBottom.Controls.Add(btnEdit);
             pnlBottom.Controls.Add(btnDuplicate);
             pnlBottom.Controls.Add(btnDelete);
+            pnlBottom.Controls.Add(btnMirino);
             pnlBottom.Controls.Add(btnTestMacro);
 
             tab.Controls.Add(lvCredentials);
@@ -303,7 +314,23 @@ namespace Custode2.UI
             var lblWhitelistSub = new Label { Text = "Bypass per app aziendali fidate (es. SAP GUI, RDP):", Location = new Point(15, 25), AutoSize = true, ForeColor = Color.DarkSlateGray, Font = new Font("Segoe UI", 8.5f) };
             lbWhitelist = new ListBox { Location = new Point(15, 52), Width = 245, Height = 150 };
 
-            txtNewWhitelistProcess = new TextBox { Location = new Point(270, 52), Width = 160 };
+            txtNewWhitelistProcess = new TextBox { Location = new Point(270, 52), Width = 115 };
+            var btnMirinoWhitelist = new Button { Text = "🎯", Location = new Point(390, 50), Width = 40, Height = 28 };
+            btnMirinoWhitelist.Click += (s, e) =>
+            {
+                this.WindowState = FormWindowState.Minimized;
+                ProcessPickerHelper.StartPicking(this, result =>
+                {
+                    this.WindowState = FormWindowState.Normal;
+                    this.BringToFront();
+                    this.Activate();
+                    if (result != null && !string.IsNullOrEmpty(result.ProcessName))
+                    {
+                        txtNewWhitelistProcess.Text = result.ProcessName;
+                    }
+                });
+            };
+
             var lblProcessHint = new Label { Text = "Es. saplogon.exe, mstsc.exe", Location = new Point(270, 78), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8f) };
 
             btnAddProcess = new Button { Text = "➕ Aggiungi", Location = new Point(270, 105), Width = 160, Height = 30 };
@@ -315,6 +342,7 @@ namespace Custode2.UI
             gbWhitelist.Controls.Add(lblWhitelistSub);
             gbWhitelist.Controls.Add(lbWhitelist);
             gbWhitelist.Controls.Add(txtNewWhitelistProcess);
+            gbWhitelist.Controls.Add(btnMirinoWhitelist);
             gbWhitelist.Controls.Add(lblProcessHint);
             gbWhitelist.Controls.Add(btnAddProcess);
             gbWhitelist.Controls.Add(btnRemoveProcess);
@@ -326,7 +354,23 @@ namespace Custode2.UI
             var lblBlacklistSub = new Label { Text = "Inserimento sempre bloccato (es. Teams, Slack, Discord):", Location = new Point(15, 25), AutoSize = true, ForeColor = Color.FromArgb(180, 40, 20), Font = new Font("Segoe UI", 8.5f, FontStyle.Bold) };
             lbBlacklist = new ListBox { Location = new Point(15, 52), Width = 245, Height = 150 };
 
-            txtNewBlacklistProcess = new TextBox { Location = new Point(270, 52), Width = 160 };
+            txtNewBlacklistProcess = new TextBox { Location = new Point(270, 52), Width = 115 };
+            var btnMirinoBlacklist = new Button { Text = "🎯", Location = new Point(390, 50), Width = 40, Height = 28 };
+            btnMirinoBlacklist.Click += (s, e) =>
+            {
+                this.WindowState = FormWindowState.Minimized;
+                ProcessPickerHelper.StartPicking(this, result =>
+                {
+                    this.WindowState = FormWindowState.Normal;
+                    this.BringToFront();
+                    this.Activate();
+                    if (result != null && !string.IsNullOrEmpty(result.ProcessName))
+                    {
+                        txtNewBlacklistProcess.Text = result.ProcessName;
+                    }
+                });
+            };
+
             var lblBlacklistHint = new Label { Text = "Es. teams.exe, slack.exe", Location = new Point(270, 78), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8f) };
 
             btnAddBlacklistProcess = new Button { Text = "➕ Aggiungi", Location = new Point(270, 105), Width = 160, Height = 30 };
@@ -338,6 +382,7 @@ namespace Custode2.UI
             gbBlacklist.Controls.Add(lblBlacklistSub);
             gbBlacklist.Controls.Add(lbBlacklist);
             gbBlacklist.Controls.Add(txtNewBlacklistProcess);
+            gbBlacklist.Controls.Add(btnMirinoBlacklist);
             gbBlacklist.Controls.Add(lblBlacklistHint);
             gbBlacklist.Controls.Add(btnAddBlacklistProcess);
             gbBlacklist.Controls.Add(btnRemoveBlacklistProcess);
@@ -675,6 +720,49 @@ namespace Custode2.UI
                     RefreshCredentialsList();
                 }
             }
+        }
+
+        private void DetectProcessWithMirino()
+        {
+            this.WindowState = FormWindowState.Minimized;
+            ProcessPickerHelper.StartPicking(this, result =>
+            {
+                this.WindowState = FormWindowState.Normal;
+                this.BringToFront();
+                this.Activate();
+
+                if (result != null && !string.IsNullOrEmpty(result.ProcessName))
+                {
+                    string info = string.Format("🎯 Applicazione Rilevata:\n\n• Processo: {0}\n• Titolo Finestra: {1}\n\nVuoi creare una nuova credenziale preimpostata con questo processo?",
+                        result.ProcessName, string.IsNullOrEmpty(result.WindowTitle) ? "-" : result.WindowTitle);
+
+                    var answer = MessageBox.Show(info, "Custode 2.0 - Mirino Applicazione", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                    if (answer == DialogResult.Yes)
+                    {
+                        var entry = new CredentialEntry
+                        {
+                            AppFilter = result.ProcessName,
+                            Title = !string.IsNullOrEmpty(result.WindowTitle) ? result.WindowTitle : result.ProcessName,
+                            Template = _vault.Settings.DefaultTemplate
+                        };
+                        using (var dlg = new EditCredentialDialog(entry))
+                        {
+                            if (dlg.ShowDialog(this) == DialogResult.OK)
+                            {
+                                _vault.Entries.Add(dlg.Entry);
+                                if (_onVaultChanged != null) _onVaultChanged();
+                                if (_onHotkeysReloadRequested != null) _onHotkeysReloadRequested();
+                                RefreshCredentialsList();
+                            }
+                        }
+                    }
+                    else if (answer == DialogResult.No)
+                    {
+                        Clipboard.SetText(result.ProcessName);
+                        MessageBox.Show(string.Format("Nome processo '{0}' copiato negli appunti!", result.ProcessName), "Copiato negli Appunti", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            });
         }
 
         private void EditSelected()
