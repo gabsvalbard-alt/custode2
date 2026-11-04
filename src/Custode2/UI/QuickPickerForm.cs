@@ -13,14 +13,24 @@ namespace Custode2.UI
     {
         private Panel pnlMain;
         private TextBox txtSearch;
+        private Panel pnlSearchSpacer;
+        private DoubleBufferedPanel pnlHeader;
+        private Panel pnlHeaderSpacer;
         private ListView lvResults;
+        private Panel pnlHintSpacer;
         private Label lblHint;
+
+        private Color _headerBgColor = Color.FromArgb(45, 46, 50);
+        private Color _headerFgColor = Color.FromArgb(220, 220, 225);
+        private Color _headerBorderColor = Color.FromArgb(65, 66, 70);
+
         private readonly List<CredentialEntry> _allEntries;
         private readonly AppSettings _settings;
         private readonly Action _onSettingsUpdated;
         private IntPtr _previousForegroundWindow;
         private bool _isShowingPicker = false;
         private DateTime _openedAt = DateTime.MinValue;
+        private Point _openCursorPos = Point.Empty;
 
         private ColumnHeader colIndex;
         private ColumnHeader colTitle;
@@ -60,7 +70,7 @@ namespace Custode2.UI
         {
             this.FormBorderStyle = FormBorderStyle.None;
             this.StartPosition = FormStartPosition.Manual;
-            this.Size = new Size(460, 400);
+            this.Size = new Size(460, 280);
             this.ShowInTaskbar = false;
             this.TopMost = true;
             this.Font = new Font("Segoe UI", 9.5f, FontStyle.Regular);
@@ -82,6 +92,20 @@ namespace Custode2.UI
             txtSearch.TextChanged += (s, e) => FilterEntries();
             txtSearch.KeyDown += HandleKeyNavigation;
 
+            // Spacer between search and header
+            pnlSearchSpacer = new Panel { Dock = DockStyle.Top, Height = 8 };
+
+            // Custom styled header panel
+            pnlHeader = new DoubleBufferedPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 26
+            };
+            pnlHeader.Paint += PnlHeader_Paint;
+
+            // Spacer between header and results list ("distanzia intestazioni dalle righe")
+            pnlHeaderSpacer = new Panel { Dock = DockStyle.Top, Height = 8 };
+
             // Results List
             lvResults = new ListView
             {
@@ -89,10 +113,11 @@ namespace Custode2.UI
                 View = View.Details,
                 FullRowSelect = true,
                 MultiSelect = false,
-                HeaderStyle = ColumnHeaderStyle.Nonclickable,
+                HideSelection = false,
+                HeaderStyle = ColumnHeaderStyle.None,
                 BorderStyle = BorderStyle.None,
                 Font = new Font("Segoe UI", 10f),
-                Margin = new Padding(0, 8, 0, 0)
+                Margin = new Padding(0)
             };
 
             colIndex = lvResults.Columns.Add("#", 42, HorizontalAlignment.Center);
@@ -104,6 +129,9 @@ namespace Custode2.UI
             lvResults.MouseClick += LvResults_MouseClick;
             lvResults.KeyDown += HandleKeyNavigation;
 
+            // Spacer above hint
+            pnlHintSpacer = new Panel { Dock = DockStyle.Bottom, Height = 6 };
+
             // Hint label
             lblHint = new Label
             {
@@ -114,13 +142,65 @@ namespace Custode2.UI
                 Font = new Font("Segoe UI", 8.5f)
             };
 
-            var pnlSpacer = new Panel { Dock = DockStyle.Top, Height = 8 };
-
+            // Controls added in order so DockStyle takes proper positions:
+            // Top dock order: txtSearch (topmost) -> pnlSearchSpacer -> pnlHeader -> pnlHeaderSpacer
+            // Bottom dock order: lblHint (bottommost) -> pnlHintSpacer
+            // Fill: lvResults
             pnlMain.Controls.Add(lvResults);
-            pnlMain.Controls.Add(pnlSpacer);
-            pnlMain.Controls.Add(txtSearch);
+            pnlMain.Controls.Add(pnlHintSpacer);
             pnlMain.Controls.Add(lblHint);
+            pnlMain.Controls.Add(pnlHeaderSpacer);
+            pnlMain.Controls.Add(pnlHeader);
+            pnlMain.Controls.Add(pnlSearchSpacer);
+            pnlMain.Controls.Add(txtSearch);
             this.Controls.Add(pnlMain);
+        }
+
+        private void PnlHeader_Paint(object sender, PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            var rect = pnlHeader.ClientRectangle;
+            if (rect.Width <= 0 || rect.Height <= 0) return;
+
+            // Header background
+            using (var brush = new SolidBrush(_headerBgColor))
+            {
+                g.FillRectangle(brush, rect);
+            }
+
+            // Subtle bottom border line
+            using (var pen = new Pen(_headerBorderColor, 1f))
+            {
+                g.DrawLine(pen, 0, rect.Height - 1, rect.Width, rect.Height - 1);
+            }
+
+            int x0 = 0;
+            int w0 = colIndex != null ? colIndex.Width : 42;
+
+            int x1 = x0 + w0;
+            int w1 = colTitle != null ? colTitle.Width : 180;
+
+            int x2 = x1 + w1;
+            int w2 = colUser != null ? colUser.Width : 140;
+
+            int x3 = x2 + w2;
+            int w3 = colCopy != null ? colCopy.Width : 72;
+
+            using (var textBrush = new SolidBrush(_headerFgColor))
+            using (var font = new Font("Segoe UI", 9f, FontStyle.Bold))
+            {
+                using (var sfCenter = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                using (var sfLeft = new StringFormat { Alignment = StringAlignment.Near, LineAlignment = StringAlignment.Center })
+                {
+                    g.DrawString("#", font, textBrush, new Rectangle(x0, 0, w0, rect.Height), sfCenter);
+                    g.DrawString("Servizio / Titolo", font, textBrush, new Rectangle(x1 + 6, 0, Math.Max(10, w1 - 8), rect.Height), sfLeft);
+                    g.DrawString("Utente / Email", font, textBrush, new Rectangle(x2 + 6, 0, Math.Max(10, w2 - 8), rect.Height), sfLeft);
+                    g.DrawString("Password", font, textBrush, new Rectangle(x3, 0, w3, rect.Height), sfCenter);
+                }
+            }
         }
 
         public void ShowPicker(IntPtr previousWindow)
@@ -128,6 +208,7 @@ namespace Custode2.UI
             _previousForegroundWindow = previousWindow;
             _openedAt = DateTime.Now;
             _isShowingPicker = true;
+            _openCursorPos = Cursor.Position;
 
             // 1. Apply configured opacity (30% to 100%)
             int opacityVal = _settings.PickerOpacity > 0 ? _settings.PickerOpacity : 95;
@@ -177,6 +258,9 @@ namespace Custode2.UI
         {
             this.BackColor = bgColor;
             pnlMain.BackColor = bgColor;
+            if (pnlSearchSpacer != null) pnlSearchSpacer.BackColor = bgColor;
+            if (pnlHeaderSpacer != null) pnlHeaderSpacer.BackColor = bgColor;
+            if (pnlHintSpacer != null) pnlHintSpacer.BackColor = bgColor;
 
             // Compute luminance to adjust text contrast
             double luminance = (0.299 * bgColor.R + 0.587 * bgColor.G + 0.114 * bgColor.B) / 255.0;
@@ -191,6 +275,10 @@ namespace Custode2.UI
                 lvResults.BackColor = bgColor;
                 lvResults.ForeColor = Color.FromArgb(20, 20, 20);
                 lblHint.ForeColor = Color.FromArgb(70, 70, 70);
+
+                _headerBgColor = Color.FromArgb(Math.Max(0, bgColor.R - 20), Math.Max(0, bgColor.G - 20), Math.Max(0, bgColor.B - 20));
+                _headerFgColor = Color.FromArgb(40, 40, 40);
+                _headerBorderColor = Color.FromArgb(Math.Max(0, bgColor.R - 40), Math.Max(0, bgColor.G - 40), Math.Max(0, bgColor.B - 40));
             }
             else
             {
@@ -201,13 +289,19 @@ namespace Custode2.UI
                 lvResults.BackColor = bgColor;
                 lvResults.ForeColor = Color.WhiteSmoke;
                 lblHint.ForeColor = Color.FromArgb(190, 190, 190);
+
+                _headerBgColor = Color.FromArgb(Math.Min(255, bgColor.R + 25), Math.Min(255, bgColor.G + 25), Math.Min(255, bgColor.B + 25));
+                _headerFgColor = Color.FromArgb(220, 220, 225);
+                _headerBorderColor = Color.FromArgb(Math.Min(255, bgColor.R + 45), Math.Min(255, bgColor.G + 45), Math.Min(255, bgColor.B + 45));
             }
+
+            if (pnlHeader != null) pnlHeader.Invalidate();
         }
 
         private void PositionWindow()
         {
-            Point cursor = Cursor.Position;
-            Screen screen = Screen.FromPoint(cursor);
+            Point refPoint = _openCursorPos != Point.Empty ? _openCursorPos : Cursor.Position;
+            Screen screen = Screen.FromPoint(refPoint);
             Rectangle area = screen.WorkingArea;
 
             string mode = string.IsNullOrEmpty(_settings.PickerPositionMode) ? "Cursor" : _settings.PickerPositionMode;
@@ -222,8 +316,8 @@ namespace Custode2.UI
             else
             {
                 // Default: near cursor position with screen bounds clamping
-                x = cursor.X - 45;
-                y = cursor.Y - 20;
+                x = refPoint.X - 45;
+                y = refPoint.Y - 20;
 
                 if (x + this.Width > area.Right) x = area.Right - this.Width - 10;
                 if (x < area.Left) x = area.Left + 10;
@@ -279,19 +373,7 @@ namespace Custode2.UI
             // Adaptive clamp: min 430px, max 680px
             targetWidth = Math.Max(430, Math.Min(680, targetWidth));
 
-            if (this.Width != targetWidth)
-            {
-                this.Width = targetWidth;
-                PositionWindow();
-            }
-
-            // Distribute column widths
-            colIndex.Width = colIndexW;
-            colCopy.Width = colCopyW;
-            colTitle.Width = maxTitleW;
-            colUser.Width = Math.Max(100, this.Width - (colIndexW + maxTitleW + colCopyW + 35));
-
-            // 2. Populate rows
+            // 2. Populate rows first so we can accurately measure row height
             for (int i = 0; i < matches.Count; i++)
             {
                 var item = matches[i];
@@ -312,6 +394,49 @@ namespace Custode2.UI
             }
 
             lvResults.EndUpdate();
+
+            // 3. Compute adaptive height based on items (max 8 visible items before scrollbar)
+            int maxVisibleRows = 8;
+            int rowCount = matches.Count;
+
+            int itemH = 24;
+            try
+            {
+                if (lvResults.Items.Count > 0)
+                {
+                    Rectangle r = lvResults.GetItemRect(0);
+                    if (r.Height > 18) itemH = r.Height;
+                }
+            }
+            catch { }
+
+            int visibleRows = Math.Max(1, Math.Min(rowCount, maxVisibleRows));
+            int listHeight = (rowCount == 0) ? 35 : (visibleRows * itemH) + 6;
+
+            int nonListHeight = pnlMain.Padding.Vertical + txtSearch.Height + pnlSearchSpacer.Height + pnlHeader.Height + pnlHeaderSpacer.Height + pnlHintSpacer.Height + lblHint.Height;
+            int targetHeight = nonListHeight + listHeight;
+            // Clamp height: min 150px, max 370px
+            targetHeight = Math.Max(150, Math.Min(370, targetHeight));
+
+            // Update size if either width or height changed
+            bool sizeChanged = (this.Width != targetWidth || this.Height != targetHeight);
+            if (sizeChanged)
+            {
+                this.Size = new Size(targetWidth, targetHeight);
+                PositionWindow();
+            }
+
+            // 4. Distribute column widths inside client area
+            int scrollbarW = (rowCount > maxVisibleRows) ? SystemInformation.VerticalScrollBarWidth : 0;
+            int usableW = pnlMain.ClientSize.Width - scrollbarW - 4;
+            int remainingUserW = usableW - (colIndexW + maxTitleW + colCopyW);
+
+            colIndex.Width = colIndexW;
+            colCopy.Width = colCopyW;
+            colTitle.Width = maxTitleW;
+            colUser.Width = Math.Max(90, remainingUserW);
+
+            pnlHeader.Invalidate();
         }
 
         private void LvResults_MouseClick(object sender, MouseEventArgs e)
@@ -471,6 +596,16 @@ namespace Custode2.UI
             }
 
             CancelAndClose();
+        }
+    }
+
+    internal class DoubleBufferedPanel : Panel
+    {
+        public DoubleBufferedPanel()
+        {
+            this.DoubleBuffered = true;
+            this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
+            this.UpdateStyles();
         }
     }
 }
