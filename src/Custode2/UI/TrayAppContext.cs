@@ -36,7 +36,7 @@ namespace Custode2.UI
             // 2. Initialize Tray Icon
             _trayIcon = new NotifyIcon
             {
-                Icon = CreateTrayIcon(),
+                Icon = GetAppIcon(),
                 Text = "Custode delle chiavi 2.0 (In esecuzione)",
                 Visible = true
             };
@@ -193,6 +193,18 @@ namespace Custode2.UI
             _trayIcon.Dispose();
             _hotkeyManager.Dispose();
             Application.Exit();
+        }
+
+        public static Icon GetAppIcon()
+        {
+            try
+            {
+                Icon exeIcon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+                if (exeIcon != null) return exeIcon;
+            }
+            catch { }
+
+            return CreateTrayIcon();
         }
 
         private static Icon CreateTrayIcon()

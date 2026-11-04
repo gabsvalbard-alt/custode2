@@ -25,6 +25,7 @@ namespace Custode2.UI
         private void InitializeComponent(string entryTitle, string processName, string details)
         {
             this.Text = "Custode 2.0 - Controllo di Sicurezza Password";
+            try { this.Icon = TrayAppContext.GetAppIcon(); } catch { }
             this.Size = new Size(580, 290);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;

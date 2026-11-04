@@ -31,6 +31,7 @@ namespace Custode2.UI
         private void InitializeComponent()
         {
             this.Text = Entry.Id == null ? "Nuova Credenziale" : "Modifica Credenziale";
+            try { this.Icon = TrayAppContext.GetAppIcon(); } catch { }
             this.Size = new Size(680, 580);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;

@@ -71,6 +71,7 @@ namespace Custode2.UI
         private void InitializeComponent()
         {
             this.Text = "Custode delle chiavi 2.0 - Gestione";
+            this.Icon = TrayAppContext.GetAppIcon();
             this.Size = new Size(950, 640);
             this.MinimumSize = new Size(880, 560);
             this.StartPosition = FormStartPosition.CenterScreen;
