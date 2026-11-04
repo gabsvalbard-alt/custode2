@@ -29,6 +29,12 @@ namespace Custode2.UI
         private TextBox txtPickerHotkey;
         private TextBox txtDefaultTemplate;
         private NumericUpDown numInterKeyDelay;
+        private TrackBar tbOpacity;
+        private Label lblOpacityVal;
+        private Panel pnlColorPreview;
+        private Button btnPickColor;
+        private Button btnResetColor;
+        private CheckBox chkRandomColor;
         private ListBox lbWhitelist;
         private TextBox txtNewWhitelistProcess;
         private Button btnAddProcess;
@@ -165,6 +171,53 @@ namespace Custode2.UI
             pnl.Controls.Add(lblDelay);
             pnl.Controls.Add(numInterKeyDelay);
 
+            // Quick Picker Popup Customization (Opacity & Color)
+            y += 70;
+            var lblPopupTitle = new Label { Text = "Personalizzazione Popup Quick Picker:", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
+            pnl.Controls.Add(lblPopupTitle);
+
+            y += 28;
+            var lblOpacity = new Label { Text = "Livello trasparenza:", Location = new Point(20, y + 4), AutoSize = true };
+            tbOpacity = new TrackBar { Location = new Point(160, y), Width = 220, Minimum = 30, Maximum = 100, TickFrequency = 10, SmallChange = 5, LargeChange = 10 };
+            lblOpacityVal = new Label { Location = new Point(390, y + 4), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
+            tbOpacity.ValueChanged += (s, e) => { lblOpacityVal.Text = tbOpacity.Value + "%"; };
+            pnl.Controls.Add(lblOpacity);
+            pnl.Controls.Add(tbOpacity);
+            pnl.Controls.Add(lblOpacityVal);
+
+            y += 45;
+            var lblBgColor = new Label { Text = "Colore di sfondo:", Location = new Point(20, y + 4), AutoSize = true };
+            pnlColorPreview = new Panel { Location = new Point(160, y + 2), Size = new Size(32, 26), BorderStyle = BorderStyle.FixedSingle, BackColor = Color.FromArgb(32, 33, 36) };
+            btnPickColor = new Button { Text = "🎨 Scegli Colore...", Location = new Point(200, y + 2), Width = 135, Height = 28 };
+            btnPickColor.Click += (s, e) =>
+            {
+                using (var cd = new ColorDialog())
+                {
+                    cd.Color = pnlColorPreview.BackColor;
+                    if (cd.ShowDialog(this) == DialogResult.OK)
+                    {
+                        pnlColorPreview.BackColor = cd.Color;
+                    }
+                }
+            };
+
+            btnResetColor = new Button { Text = "Ripristina Scuro", Location = new Point(345, y + 2), Width = 115, Height = 28 };
+            btnResetColor.Click += (s, e) => { pnlColorPreview.BackColor = Color.FromArgb(32, 33, 36); };
+
+            chkRandomColor = new CheckBox { Text = "🎲 Usa colore casuale ad ogni apertura", Location = new Point(475, y + 6), AutoSize = true };
+            chkRandomColor.CheckedChanged += (s, e) =>
+            {
+                pnlColorPreview.Enabled = !chkRandomColor.Checked;
+                btnPickColor.Enabled = !chkRandomColor.Checked;
+                btnResetColor.Enabled = !chkRandomColor.Checked;
+            };
+
+            pnl.Controls.Add(lblBgColor);
+            pnl.Controls.Add(pnlColorPreview);
+            pnl.Controls.Add(btnPickColor);
+            pnl.Controls.Add(btnResetColor);
+            pnl.Controls.Add(chkRandomColor);
+
             // Whitelisted Processes (SAP GUI, etc.)
             y += 70;
             var lblWhitelistTitle = new Label { Text = "Processi Autorizzati (Bypass automatico controllo password):", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
@@ -263,6 +316,24 @@ namespace Custode2.UI
             txtDefaultTemplate.Text = s.DefaultTemplate;
             numInterKeyDelay.Value = Math.Max(0, Math.Min(200, s.InterKeyDelayMs));
 
+            int op = s.PickerOpacity > 0 ? s.PickerOpacity : 95;
+            tbOpacity.Value = Math.Max(30, Math.Min(100, op));
+            lblOpacityVal.Text = tbOpacity.Value + "%";
+
+            try
+            {
+                pnlColorPreview.BackColor = ColorTranslator.FromHtml(!string.IsNullOrEmpty(s.PickerBackgroundColor) ? s.PickerBackgroundColor : "#202124");
+            }
+            catch
+            {
+                pnlColorPreview.BackColor = Color.FromArgb(32, 33, 36);
+            }
+
+            chkRandomColor.Checked = s.PickerRandomColor;
+            pnlColorPreview.Enabled = !s.PickerRandomColor;
+            btnPickColor.Enabled = !s.PickerRandomColor;
+            btnResetColor.Enabled = !s.PickerRandomColor;
+
             lbWhitelist.Items.Clear();
             if (s.WhitelistedProcesses != null)
             {
@@ -279,6 +350,10 @@ namespace Custode2.UI
             s.GlobalPickerHotkey = txtPickerHotkey.Text.Trim();
             s.DefaultTemplate = txtDefaultTemplate.Text.Trim();
             s.InterKeyDelayMs = (int)numInterKeyDelay.Value;
+
+            s.PickerOpacity = tbOpacity.Value;
+            s.PickerBackgroundColor = ColorTranslator.ToHtml(pnlColorPreview.BackColor);
+            s.PickerRandomColor = chkRandomColor.Checked;
 
             if (_onVaultChanged != null) _onVaultChanged();
             if (_onHotkeysReloadRequested != null) _onHotkeysReloadRequested();

@@ -13,6 +13,11 @@ namespace Custode2.Models
         public bool AutoRestorePreviousWindow { get; set; }
         public List<string> WhitelistedProcesses { get; set; }
 
+        // Popup customization
+        public int PickerOpacity { get; set; }
+        public string PickerBackgroundColor { get; set; }
+        public bool PickerRandomColor { get; set; }
+
         public AppSettings()
         {
             GlobalPickerHotkey = "Ctrl+Alt+Space";
@@ -26,6 +31,10 @@ namespace Custode2.Models
                 "sapgui.exe",
                 "mstsc.exe"
             };
+
+            PickerOpacity = 95;
+            PickerBackgroundColor = "#202124";
+            PickerRandomColor = false;
         }
     }
 }
