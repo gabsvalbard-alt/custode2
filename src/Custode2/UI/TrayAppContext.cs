@@ -64,6 +64,12 @@ namespace Custode2.UI
             _hotkeyManager = new GlobalHotkeyManager();
             _hotkeyManager.HotkeyPressed += OnHotkeyPressed;
 
+            // 5. Clipboard security notification
+            ClipboardSecurity.ClipboardCleared += () =>
+            {
+                _trayIcon.ShowBalloonTip(1500, "Custode 2.0", "Password rimossa automaticamente dagli appunti.", ToolTipIcon.Info);
+            };
+
             RegisterAllHotkeys();
 
             // Notify user of background startup

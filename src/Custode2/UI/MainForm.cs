@@ -37,6 +37,7 @@ namespace Custode2.UI
         private CheckBox chkRandomColor;
         private RadioButton rbPosCursor;
         private RadioButton rbPosCenter;
+        private NumericUpDown numClipboardSeconds;
         private ListBox lbWhitelist;
         private TextBox txtNewWhitelistProcess;
         private Button btnAddProcess;
@@ -229,6 +230,15 @@ namespace Custode2.UI
             pnl.Controls.Add(rbPosCursor);
             pnl.Controls.Add(rbPosCenter);
 
+            // Clipboard clear seconds
+            y += 38;
+            var lblClipboard = new Label { Text = "Svuota appunti dopo (secondi):", Location = new Point(20, y + 2), AutoSize = true };
+            numClipboardSeconds = new NumericUpDown { Location = new Point(230, y), Width = 80, Minimum = 3, Maximum = 120, Value = 15 };
+            var lblClipboardHint = new Label { Text = "Rimuove la password dagli appunti (predefinito: 15s)", Location = new Point(325, y + 2), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
+            pnl.Controls.Add(lblClipboard);
+            pnl.Controls.Add(numClipboardSeconds);
+            pnl.Controls.Add(lblClipboardHint);
+
             // Whitelisted Processes (SAP GUI, etc.)
             y += 65;
             var lblWhitelistTitle = new Label { Text = "Processi Autorizzati (Bypass automatico controllo password):", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
@@ -355,6 +365,9 @@ namespace Custode2.UI
                 rbPosCursor.Checked = true;
             }
 
+            int clipSec = s.ClipboardClearSeconds > 0 ? s.ClipboardClearSeconds : 15;
+            numClipboardSeconds.Value = Math.Max(3, Math.Min(120, clipSec));
+
             lbWhitelist.Items.Clear();
             if (s.WhitelistedProcesses != null)
             {
@@ -376,6 +389,7 @@ namespace Custode2.UI
             s.PickerBackgroundColor = ColorTranslator.ToHtml(pnlColorPreview.BackColor);
             s.PickerRandomColor = chkRandomColor.Checked;
             s.PickerPositionMode = rbPosCenter.Checked ? "CenterScreen" : "Cursor";
+            s.ClipboardClearSeconds = (int)numClipboardSeconds.Value;
 
             if (_onVaultChanged != null) _onVaultChanged();
             if (_onHotkeysReloadRequested != null) _onHotkeysReloadRequested();

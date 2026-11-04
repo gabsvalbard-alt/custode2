@@ -18,6 +18,7 @@ namespace Custode2.Models
         public string PickerBackgroundColor { get; set; }
         public bool PickerRandomColor { get; set; }
         public string PickerPositionMode { get; set; }
+        public int ClipboardClearSeconds { get; set; }
 
         public AppSettings()
         {
@@ -37,6 +38,7 @@ namespace Custode2.Models
             PickerBackgroundColor = "#202124";
             PickerRandomColor = false;
             PickerPositionMode = "Cursor";
+            ClipboardClearSeconds = 15;
         }
     }
 }
