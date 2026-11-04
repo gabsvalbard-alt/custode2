@@ -15,6 +15,8 @@ namespace Custode2.Macro
         // --- Window Styles ---
         public const int GWL_STYLE = -16;
         public const uint ES_PASSWORD = 0x0020;
+        public const uint ES_READONLY = 0x0800;
+        public const uint WS_DISABLED = 0x08000000;
 
         // --- Hotkey Modifiers ---
         public const uint MOD_ALT = 0x0001;

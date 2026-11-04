@@ -19,9 +19,12 @@ namespace Custode2.UI
         private QuickPickerForm _pickerForm;
         private bool _hotkeysSuspended = false;
         private ToolStripMenuItem _menuSuspend;
+        private static TrayAppContext _instance;
 
         public TrayAppContext()
         {
+            _instance = this;
+
             // 1. Load Vault using DPAPI
             try
             {
@@ -237,6 +240,18 @@ namespace Custode2.UI
                 IntPtr hIcon = bmp.GetHicon();
                 return Icon.FromHandle(hIcon);
             }
+        }
+
+        public static void ShowNotification(string title, string message, ToolTipIcon icon = ToolTipIcon.Info)
+        {
+            try
+            {
+                if (_instance != null && _instance._trayIcon != null)
+                {
+                    _instance._trayIcon.ShowBalloonTip(3500, title, message, icon);
+                }
+            }
+            catch { }
         }
 
         protected override void Dispose(bool disposing)

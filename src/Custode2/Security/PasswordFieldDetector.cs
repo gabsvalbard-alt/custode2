@@ -179,5 +179,164 @@ namespace Custode2.Security
 
             return PasswordDetectionResult.Uncertain;
         }
+
+        public static bool IsTargetEditable(IntPtr targetHwnd, CredentialEntry entry, AppSettings settings, out string reason)
+        {
+            reason = string.Empty;
+            if (targetHwnd == IntPtr.Zero) return true;
+
+            // 1. Bypass / Whitelist check
+            if (entry != null && entry.BypassSecurityCheck) return true;
+
+            string processName = string.Empty;
+            try
+            {
+                uint pid;
+                NativeMethods.GetWindowThreadProcessId(targetHwnd, out pid);
+                if (pid > 0)
+                {
+                    var proc = Process.GetProcessById((int)pid);
+                    processName = proc.ProcessName.ToLowerInvariant();
+                    if (!processName.EndsWith(".exe")) processName += ".exe";
+                }
+            }
+            catch { }
+
+            if (settings != null && settings.WhitelistedProcesses != null && !string.IsNullOrEmpty(processName))
+            {
+                foreach (var wp in settings.WhitelistedProcesses)
+                {
+                    if (string.Equals(wp.Trim(), processName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            // 2. UI Automation inspection
+            try
+            {
+                var focused = AutomationElement.FocusedElement;
+                if (focused != null)
+                {
+                    var ct = focused.Current.ControlType;
+                    if (ct == ControlType.Edit || ct == ControlType.ComboBox)
+                    {
+                        object readOnlyObj = focused.GetCurrentPropertyValue(ValuePattern.IsReadOnlyProperty, true);
+                        if (readOnlyObj is bool && (bool)readOnlyObj)
+                        {
+                            reason = "Il campo selezionato è contrassegnato come di sola lettura (Read Only).";
+                            return false;
+                        }
+                        return true;
+                    }
+
+                    if (ct == ControlType.Document)
+                    {
+                        object readOnlyObj = focused.GetCurrentPropertyValue(ValuePattern.IsReadOnlyProperty, true);
+                        if (readOnlyObj is bool && !(bool)readOnlyObj)
+                        {
+                            return true;
+                        }
+                    }
+
+                    object valPatternObj;
+                    if (focused.TryGetCurrentPattern(ValuePattern.Pattern, out valPatternObj))
+                    {
+                        var valPattern = valPatternObj as ValuePattern;
+                        if (valPattern != null && !valPattern.Current.IsReadOnly)
+                        {
+                            return true;
+                        }
+                    }
+
+                    if (ct == ControlType.Button || ct == ControlType.ScrollBar || ct == ControlType.Header ||
+                        ct == ControlType.Image || ct == ControlType.MenuBar || ct == ControlType.MenuItem ||
+                        ct == ControlType.ProgressBar || ct == ControlType.Slider || ct == ControlType.Separator ||
+                        ct == ControlType.TabItem || ct == ControlType.ToolTip || ct == ControlType.TreeItem ||
+                        ct == ControlType.Text || ct == ControlType.Pane || ct == ControlType.Window ||
+                        ct == ControlType.Group || ct == ControlType.List || ct == ControlType.Table)
+                    {
+                        reason = string.Format("L'elemento attualmente attivo non è un campo di testo (rilevato: {0}).", ct.LocalizedControlType);
+                        return false;
+                    }
+                }
+            }
+            catch { }
+
+            // 3. Win32 Level inspection
+            try
+            {
+                uint dummyPid;
+                uint targetThreadId = NativeMethods.GetWindowThreadProcessId(targetHwnd, out dummyPid);
+                uint currentThreadId = NativeMethods.GetCurrentThreadId();
+
+                IntPtr hFocus = IntPtr.Zero;
+                bool attached = false;
+
+                if (targetThreadId != currentThreadId)
+                {
+                    attached = NativeMethods.AttachThreadInput(currentThreadId, targetThreadId, true);
+                }
+
+                try
+                {
+                    hFocus = NativeMethods.GetFocus();
+                }
+                finally
+                {
+                    if (attached)
+                    {
+                        NativeMethods.AttachThreadInput(currentThreadId, targetThreadId, false);
+                    }
+                }
+
+                if (hFocus != IntPtr.Zero)
+                {
+                    long style = NativeMethods.GetWindowLong(hFocus, NativeMethods.GWL_STYLE).ToInt64();
+                    if ((style & NativeMethods.WS_DISABLED) != 0)
+                    {
+                        reason = "Il controllo attivo nella finestra è disabilitato.";
+                        return false;
+                    }
+                    if ((style & NativeMethods.ES_READONLY) != 0)
+                    {
+                        reason = "Il campo selezionato è di sola lettura (ES_READONLY).";
+                        return false;
+                    }
+
+                    var sbClass = new StringBuilder(128);
+                    NativeMethods.GetClassName(hFocus, sbClass, sbClass.Capacity);
+                    string className = sbClass.ToString();
+
+                    if (className.IndexOf("Edit", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        className.IndexOf("RichEdit", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        className.IndexOf("TextBox", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        className.IndexOf("Scintilla", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        className.IndexOf("Console", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        className.IndexOf("Terminal", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return true;
+                    }
+
+                    if (className.IndexOf("Button", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        className.IndexOf("Static", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        className.IndexOf("SysListView", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        className.IndexOf("SysTreeView", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        reason = string.Format("L'elemento selezionato non è editabile (classe: {0}).", className);
+                        return false;
+                    }
+                }
+                else
+                {
+                    reason = "Nessun cursore o campo di testo attivo nella finestra target.";
+                    return false;
+                }
+            }
+            catch { }
+
+            return true;
+        }
     }
 }

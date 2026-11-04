@@ -60,21 +60,79 @@ namespace Custode2.Macro
                         Thread.Sleep(120);
                     }
 
-                    // 2. Parse template tokens
+                    // 2. Pre-flight check: Is an editable field focused?
+                    string nonEditableReason;
+                    if (!PasswordFieldDetector.IsTargetEditable(targetHwnd, entry, settings, out nonEditableReason))
+                    {
+                        bool forceAnyway = false;
+                        bool remember = false;
+                        using (var form = new SecurityConfirmDialog(entry.Title, processName, nonEditableReason, isEditableWarning: true))
+                        {
+                            if (form.ShowDialog() == DialogResult.OK)
+                            {
+                                forceAnyway = true;
+                                remember = form.RememberChoice;
+                            }
+                        }
+
+                        if (!forceAnyway)
+                        {
+                            // User aborted because no editable field was found
+                            return;
+                        }
+
+                        if (remember && !string.IsNullOrEmpty(processName))
+                        {
+                            if (settings.WhitelistedProcesses == null) settings.WhitelistedProcesses = new List<string>();
+                            if (!settings.WhitelistedProcesses.Contains(processName.ToLowerInvariant()))
+                            {
+                                settings.WhitelistedProcesses.Add(processName.ToLowerInvariant());
+                                if (onSettingsUpdated != null) onSettingsUpdated();
+                            }
+                        }
+
+                        // Refocus target window after dialog closes
+                        if (targetHwnd != IntPtr.Zero)
+                        {
+                            NativeMethods.SetForegroundWindow(targetHwnd);
+                            Thread.Sleep(80);
+                        }
+                    }
+
+                    // Target PID for continuous active focus guard
+                    uint targetPid = 0;
+                    if (targetHwnd != IntPtr.Zero)
+                    {
+                        NativeMethods.GetWindowThreadProcessId(targetHwnd, out targetPid);
+                    }
+
+                    // 3. Parse template tokens
                     string template = string.IsNullOrEmpty(entry.Template) ? settings.DefaultTemplate : entry.Template;
                     List<MacroAction> actions = ParseTemplate(template, entry);
 
-                    // 3. Execute actions in sequence
+                    // 4. Execute actions in sequence with Active Focus Guard
                     foreach (var action in actions)
                     {
+                        // Check if the user switched windows before this action
+                        if (!IsTargetActive(targetHwnd, targetPid))
+                        {
+                            TrayAppContext.ShowNotification(
+                                "Custode 2.0 - Inserimento Interrotto",
+                                "Hai cambiato finestra durante la digitazione. La macro è stata arrestata per sicurezza.",
+                                ToolTipIcon.Warning);
+                            return;
+                        }
+
                         switch (action.Type)
                         {
                             case ActionType.TypeUnicodeText:
-                                SendUnicodeText(action.Text, settings.InterKeyDelayMs);
+                                if (!SendUnicodeText(action.Text, settings.InterKeyDelayMs, targetHwnd, targetPid))
+                                    return;
                                 break;
 
                             case ActionType.PressVirtualKey:
-                                SendVirtualKey(action.VirtualKey, settings.InterKeyDelayMs);
+                                if (!SendVirtualKey(action.VirtualKey, settings.InterKeyDelayMs, targetHwnd, targetPid))
+                                    return;
                                 break;
 
                             case ActionType.Delay:
@@ -96,7 +154,18 @@ namespace Custode2.Macro
                                     Thread.Sleep(80);
                                 }
 
-                                SendUnicodeText(entry.Password ?? string.Empty, settings.InterKeyDelayMs);
+                                // Verify focus guard right before typing password!
+                                if (!IsTargetActive(targetHwnd, targetPid))
+                                {
+                                    TrayAppContext.ShowNotification(
+                                        "Custode 2.0 - Password Non Inviata",
+                                        "Finestra cambiata prima dell'invio della password. Inserimento arrestato per sicurezza.",
+                                        ToolTipIcon.Warning);
+                                    return;
+                                }
+
+                                if (!SendUnicodeText(entry.Password ?? string.Empty, settings.InterKeyDelayMs, targetHwnd, targetPid))
+                                    return;
                                 break;
                         }
                     }
@@ -275,12 +344,22 @@ namespace Custode2.Macro
             return actions;
         }
 
-        private static void SendUnicodeText(string text, int interKeyDelayMs)
+        private static bool SendUnicodeText(string text, int interKeyDelayMs, IntPtr targetHwnd, uint targetPid)
         {
-            if (string.IsNullOrEmpty(text)) return;
+            if (string.IsNullOrEmpty(text)) return true;
 
             foreach (char c in text)
             {
+                // Continuous Active Focus Guard: check if the user switched windows in the middle of typing!
+                if (!IsTargetActive(targetHwnd, targetPid))
+                {
+                    TrayAppContext.ShowNotification(
+                        "Custode 2.0 - Inserimento Interrotto",
+                        "Rilevato cambio finestra durante la digitazione. La macro è stata arrestata per sicurezza.",
+                        ToolTipIcon.Warning);
+                    return false;
+                }
+
                 var inputs = new NativeMethods.INPUT[2];
 
                 // Key down
@@ -299,17 +378,35 @@ namespace Custode2.Macro
                 inputs[1].u.ki.time = 0;
                 inputs[1].u.ki.dwExtraInfo = IntPtr.Zero;
 
-                NativeMethods.SendInput(2, inputs, Marshal.SizeOf(typeof(NativeMethods.INPUT)));
+                uint sent = NativeMethods.SendInput(2, inputs, Marshal.SizeOf(typeof(NativeMethods.INPUT)));
+                if (sent == 0)
+                {
+                    int err = Marshal.GetLastWin32Error();
+                    NotifySendInputFailure(targetHwnd, err);
+                    return false;
+                }
 
                 if (interKeyDelayMs > 0)
                 {
                     Thread.Sleep(interKeyDelayMs);
                 }
             }
+
+            return true;
         }
 
-        private static void SendVirtualKey(ushort vk, int interKeyDelayMs)
+        private static bool SendVirtualKey(ushort vk, int interKeyDelayMs, IntPtr targetHwnd, uint targetPid)
         {
+            // Continuous Active Focus Guard
+            if (!IsTargetActive(targetHwnd, targetPid))
+            {
+                TrayAppContext.ShowNotification(
+                    "Custode 2.0 - Inserimento Interrotto",
+                    "Rilevato cambio finestra durante la digitazione. La macro è stata arrestata per sicurezza.",
+                    ToolTipIcon.Warning);
+                return false;
+            }
+
             var inputs = new NativeMethods.INPUT[2];
 
             // Key down
@@ -328,11 +425,60 @@ namespace Custode2.Macro
             inputs[1].u.ki.time = 0;
             inputs[1].u.ki.dwExtraInfo = IntPtr.Zero;
 
-            NativeMethods.SendInput(2, inputs, Marshal.SizeOf(typeof(NativeMethods.INPUT)));
+            uint sent = NativeMethods.SendInput(2, inputs, Marshal.SizeOf(typeof(NativeMethods.INPUT)));
+            if (sent == 0)
+            {
+                int err = Marshal.GetLastWin32Error();
+                NotifySendInputFailure(targetHwnd, err);
+                return false;
+            }
 
             if (interKeyDelayMs > 0)
             {
                 Thread.Sleep(interKeyDelayMs);
+            }
+
+            return true;
+        }
+
+        private static bool IsTargetActive(IntPtr targetHwnd, uint targetPid)
+        {
+            if (targetHwnd == IntPtr.Zero && targetPid == 0) return true;
+
+            IntPtr fg = NativeMethods.GetForegroundWindow();
+            if (fg == IntPtr.Zero) return false;
+
+            // Direct match with target window
+            if (fg == targetHwnd) return true;
+
+            // Match with any child window or dialog belonging to the same process
+            if (targetPid > 0)
+            {
+                uint fgPid;
+                NativeMethods.GetWindowThreadProcessId(fg, out fgPid);
+                if (fgPid == targetPid) return true;
+            }
+
+            return false;
+        }
+
+        private static void NotifySendInputFailure(IntPtr targetHwnd, int err)
+        {
+            string procName = GetProcessName(targetHwnd);
+            if (err == 5) // ERROR_ACCESS_DENIED (UIPI block)
+            {
+                TrayAppContext.ShowNotification(
+                    "Custode 2.0 - Blocco Permessi (UIPI)",
+                    string.Format("La finestra '{0}' richiede privilegi di Amministratore.\nAvvia Custode come Amministratore per poter digitare in questa finestra.",
+                        string.IsNullOrEmpty(procName) ? "destinazione" : procName),
+                    ToolTipIcon.Error);
+            }
+            else
+            {
+                TrayAppContext.ShowNotification(
+                    "Custode 2.0 - Errore di Scrittura",
+                    string.Format("Windows non ha accettato l'invio dei tasti (errore Win32: {0}).", err),
+                    ToolTipIcon.Warning);
             }
         }
     }
