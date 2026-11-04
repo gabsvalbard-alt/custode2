@@ -16,7 +16,7 @@ namespace Custode2.UI
         private Panel pnlSearchSpacer;
         private DoubleBufferedPanel pnlHeader;
         private Panel pnlHeaderSpacer;
-        private ListView lvResults;
+        private PickerListView lvResults;
         private Panel pnlHintSpacer;
         private Label lblHint;
 
@@ -107,7 +107,7 @@ namespace Custode2.UI
             pnlHeaderSpacer = new Panel { Dock = DockStyle.Top, Height = 8 };
 
             // Results List
-            lvResults = new ListView
+            lvResults = new PickerListView
             {
                 Dock = DockStyle.Fill,
                 View = View.Details,
@@ -120,10 +120,14 @@ namespace Custode2.UI
                 Margin = new Padding(0)
             };
 
-            colIndex = lvResults.Columns.Add("#", 42, HorizontalAlignment.Center);
+            // Uniform comfortable row height
+            var imgList = new ImageList { ImageSize = new Size(1, 26) };
+            lvResults.SmallImageList = imgList;
+
+            colIndex = lvResults.Columns.Add("#", 44, HorizontalAlignment.Center);
             colTitle = lvResults.Columns.Add("Servizio / Titolo", 180);
             colUser = lvResults.Columns.Add("Utente / Email", 140);
-            colCopy = lvResults.Columns.Add("Password", 72, HorizontalAlignment.Center);
+            colCopy = lvResults.Columns.Add("Password", 76, HorizontalAlignment.Center);
 
             lvResults.DoubleClick += (s, e) => ExecuteSelected();
             lvResults.MouseClick += LvResults_MouseClick;
@@ -365,15 +369,15 @@ namespace Custode2.UI
             maxTitleW = Math.Min(310, maxTitleW + 15);
             maxUserW = Math.Min(230, maxUserW + 15);
 
-            int colIndexW = 42;
-            int colCopyW = 72;
-            int paddingAndScrollbar = 50;
+            int colIndexW = 44;
+            int colCopyW = 76;
+            int paddingAndSlack = 40;
 
-            int targetWidth = colIndexW + maxTitleW + maxUserW + colCopyW + paddingAndScrollbar;
-            // Adaptive clamp: min 430px, max 680px
-            targetWidth = Math.Max(430, Math.Min(680, targetWidth));
+            int targetWidth = colIndexW + maxTitleW + maxUserW + colCopyW + paddingAndSlack;
+            // Adaptive clamp: min 440px, max 680px
+            targetWidth = Math.Max(440, Math.Min(680, targetWidth));
 
-            // 2. Populate rows first so we can accurately measure row height
+            // 2. Populate rows first so we can accurately measure row count
             for (int i = 0; i < matches.Count; i++)
             {
                 var item = matches[i];
@@ -398,25 +402,16 @@ namespace Custode2.UI
             // 3. Compute adaptive height based on items (max 8 visible items before scrollbar)
             int maxVisibleRows = 8;
             int rowCount = matches.Count;
-
-            int itemH = 24;
-            try
-            {
-                if (lvResults.Items.Count > 0)
-                {
-                    Rectangle r = lvResults.GetItemRect(0);
-                    if (r.Height > 18) itemH = r.Height;
-                }
-            }
-            catch { }
+            int itemH = 26; // Fixed uniform height via SmallImageList
 
             int visibleRows = Math.Max(1, Math.Min(rowCount, maxVisibleRows));
-            int listHeight = (rowCount == 0) ? 35 : (visibleRows * itemH) + 6;
+            // +12px buffer ensures Windows SysListView32 NEVER triggers an unwanted vertical scrollbar when rowCount <= 8
+            int listHeight = (rowCount == 0) ? 36 : (visibleRows * itemH) + 12;
 
             int nonListHeight = pnlMain.Padding.Vertical + txtSearch.Height + pnlSearchSpacer.Height + pnlHeader.Height + pnlHeaderSpacer.Height + pnlHintSpacer.Height + lblHint.Height;
             int targetHeight = nonListHeight + listHeight;
-            // Clamp height: min 150px, max 370px
-            targetHeight = Math.Max(150, Math.Min(370, targetHeight));
+            // Clamp height: min 150px, max 380px
+            targetHeight = Math.Max(150, Math.Min(380, targetHeight));
 
             // Update size if either width or height changed
             bool sizeChanged = (this.Width != targetWidth || this.Height != targetHeight);
@@ -428,13 +423,13 @@ namespace Custode2.UI
 
             // 4. Distribute column widths inside client area
             int scrollbarW = (rowCount > maxVisibleRows) ? SystemInformation.VerticalScrollBarWidth : 0;
-            int usableW = pnlMain.ClientSize.Width - scrollbarW - 4;
+            int usableW = this.ClientSize.Width - pnlMain.Padding.Horizontal - scrollbarW - 8;
             int remainingUserW = usableW - (colIndexW + maxTitleW + colCopyW);
 
             colIndex.Width = colIndexW;
             colCopy.Width = colCopyW;
             colTitle.Width = maxTitleW;
-            colUser.Width = Math.Max(90, remainingUserW);
+            colUser.Width = Math.Max(80, remainingUserW);
 
             pnlHeader.Invalidate();
         }
@@ -606,6 +601,30 @@ namespace Custode2.UI
             this.DoubleBuffered = true;
             this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
             this.UpdateStyles();
+        }
+    }
+
+    internal class PickerListView : ListView
+    {
+        private const int SB_HORZ = 0;
+        private const int WM_NCCALCSIZE = 0x0083;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern int ShowScrollBar(IntPtr hWnd, int wBar, int bShow);
+
+        public PickerListView()
+        {
+            this.DoubleBuffered = true;
+            this.SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WM_NCCALCSIZE)
+            {
+                ShowScrollBar(this.Handle, SB_HORZ, 0);
+            }
+            base.WndProc(ref m);
         }
     }
 }
