@@ -130,14 +130,46 @@ namespace Custode2.UI
             txtSearch.Clear();
             FilterEntries();
 
-            // Center on active screen
-            this.CenterToScreen();
+            // 3. Position popup: Cursor position (default) or Center of screen
+            PositionWindow();
+
             this.TopMost = true;
             this.Show();
             this.BringToFront();
             this.Activate();
             NativeMethods.SetForegroundWindow(this.Handle);
             txtSearch.Focus();
+        }
+
+        private void PositionWindow()
+        {
+            Point cursor = Cursor.Position;
+            Screen screen = Screen.FromPoint(cursor);
+            Rectangle area = screen.WorkingArea;
+
+            string mode = string.IsNullOrEmpty(_settings.PickerPositionMode) ? "Cursor" : _settings.PickerPositionMode;
+
+            int x, y;
+            if (mode.Equals("CenterScreen", StringComparison.OrdinalIgnoreCase) || mode.Equals("Center", StringComparison.OrdinalIgnoreCase))
+            {
+                // Center on the active monitor
+                x = area.Left + (area.Width - this.Width) / 2;
+                y = area.Top + (area.Height - this.Height) / 2;
+            }
+            else
+            {
+                // Default: near cursor position with screen bounds clamping
+                x = cursor.X - 50;
+                y = cursor.Y - 25;
+
+                if (x + this.Width > area.Right) x = area.Right - this.Width - 10;
+                if (x < area.Left) x = area.Left + 10;
+                if (y + this.Height > area.Bottom) y = area.Bottom - this.Height - 10;
+                if (y < area.Top) y = area.Top + 10;
+            }
+
+            this.StartPosition = FormStartPosition.Manual;
+            this.Location = new Point(x, y);
         }
 
         private Color ResolveBackgroundColor()

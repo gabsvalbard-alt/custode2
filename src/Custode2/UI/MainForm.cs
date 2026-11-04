@@ -35,6 +35,8 @@ namespace Custode2.UI
         private Button btnPickColor;
         private Button btnResetColor;
         private CheckBox chkRandomColor;
+        private RadioButton rbPosCursor;
+        private RadioButton rbPosCenter;
         private ListBox lbWhitelist;
         private TextBox txtNewWhitelistProcess;
         private Button btnAddProcess;
@@ -218,8 +220,17 @@ namespace Custode2.UI
             pnl.Controls.Add(btnResetColor);
             pnl.Controls.Add(chkRandomColor);
 
+            // Position mode: Cursor (default) or Center of screen
+            y += 42;
+            var lblPosTitle = new Label { Text = "Posizione di comparsa:", Location = new Point(20, y + 2), AutoSize = true };
+            rbPosCursor = new RadioButton { Text = "Posizione cursore del mouse (predefinita)", Location = new Point(160, y), AutoSize = true, Checked = true };
+            rbPosCenter = new RadioButton { Text = "Centro dello schermo", Location = new Point(440, y), AutoSize = true };
+            pnl.Controls.Add(lblPosTitle);
+            pnl.Controls.Add(rbPosCursor);
+            pnl.Controls.Add(rbPosCenter);
+
             // Whitelisted Processes (SAP GUI, etc.)
-            y += 70;
+            y += 65;
             var lblWhitelistTitle = new Label { Text = "Processi Autorizzati (Bypass automatico controllo password):", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
             var lblWhitelistSub = new Label { Text = "Ideale per software aziendali come SAP GUI (saplogon.exe, sapgui.exe) o RDP (mstsc.exe)", Location = new Point(20, y + 22), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
             lbWhitelist = new ListBox { Location = new Point(20, y + 45), Width = 300, Height = 105 };
@@ -334,6 +345,16 @@ namespace Custode2.UI
             btnPickColor.Enabled = !s.PickerRandomColor;
             btnResetColor.Enabled = !s.PickerRandomColor;
 
+            if (string.Equals(s.PickerPositionMode, "CenterScreen", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(s.PickerPositionMode, "Center", StringComparison.OrdinalIgnoreCase))
+            {
+                rbPosCenter.Checked = true;
+            }
+            else
+            {
+                rbPosCursor.Checked = true;
+            }
+
             lbWhitelist.Items.Clear();
             if (s.WhitelistedProcesses != null)
             {
@@ -354,6 +375,7 @@ namespace Custode2.UI
             s.PickerOpacity = tbOpacity.Value;
             s.PickerBackgroundColor = ColorTranslator.ToHtml(pnlColorPreview.BackColor);
             s.PickerRandomColor = chkRandomColor.Checked;
+            s.PickerPositionMode = rbPosCenter.Checked ? "CenterScreen" : "Cursor";
 
             if (_onVaultChanged != null) _onVaultChanged();
             if (_onHotkeysReloadRequested != null) _onHotkeysReloadRequested();

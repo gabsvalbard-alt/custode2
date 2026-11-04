@@ -17,6 +17,7 @@ namespace Custode2.Models
         public int PickerOpacity { get; set; }
         public string PickerBackgroundColor { get; set; }
         public bool PickerRandomColor { get; set; }
+        public string PickerPositionMode { get; set; }
 
         public AppSettings()
         {
@@ -35,6 +36,7 @@ namespace Custode2.Models
             PickerOpacity = 95;
             PickerBackgroundColor = "#202124";
             PickerRandomColor = false;
+            PickerPositionMode = "Cursor";
         }
     }
 }

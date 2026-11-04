@@ -19,7 +19,7 @@ Sviluppata interamente in **C# su .NET Framework 4.8 nativo**:
 ### 2. Inserimento Rapido tramite Scorciatoie
 - **Quick Picker Globale (Stile Spotlight / PowerToys Run)**:
   - Premi `Ctrl + Alt + Spazio` (modificabile) da qualsiasi applicazione.
-  - Si apre una barra di ricerca minimale in sovrimpressione con **opacità/trasparenza regolabile** e **colore di sfondo personalizzabile (anche casuale)**.
+  - Si apre una barra di ricerca minimale in sovrimpressione con **opacità/trasparenza regolabile**, **colore di sfondo personalizzabile (anche casuale)** e **posizione configurabile** (vicino al cursore del mouse come predefinita o al centro dello schermo).
   - **Selezione numerica rapida istantanea**: ogni riga ha un indice `[1]`, `[2]`, `[3]`... Premi direttamente il numero corrispondente (es. `2`) per compilare immediatamente la seconda riga senza premere Invio!
   - Digita testo nella casella di ricerca per filtrare istantaneamente per titolo, utente o note.
 - **Scorciatoie Dirette per Riga**:
