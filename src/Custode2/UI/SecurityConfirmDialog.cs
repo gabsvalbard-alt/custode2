@@ -180,9 +180,21 @@ namespace Custode2.UI
                 Size = new Size(btnWidth, 34),
                 BackColor = actionColor,
                 ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                FlatStyle = FlatStyle.Flat,
+                TabIndex = 1
             };
             btnAction.FlatAppearance.BorderSize = 0;
+            btnAction.GotFocus += (s, e) => { this.AcceptButton = btnAction; btnAction.Invalidate(); };
+            btnAction.LostFocus += (s, e) => { this.AcceptButton = btnCancel; btnAction.Invalidate(); };
+            btnAction.Paint += (s, pe) =>
+            {
+                if (btnAction.Focused)
+                {
+                    var rect = btnAction.ClientRectangle;
+                    rect.Inflate(-3, -3);
+                    ControlPaint.DrawFocusRectangle(pe.Graphics, rect);
+                }
+            };
 
             btnCancel = new Button
             {
@@ -190,10 +202,45 @@ namespace Custode2.UI
                 DialogResult = DialogResult.Cancel,
                 Location = new Point(left + maxContentWidth - 105, nextY),
                 Size = new Size(105, 34),
-                BackColor = Color.FromArgb(230, 233, 236),
-                FlatStyle = FlatStyle.Flat
+                BackColor = Color.FromArgb(225, 240, 255),
+                ForeColor = Color.FromArgb(0, 50, 140),
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                TabIndex = 0
             };
-            btnCancel.FlatAppearance.BorderSize = 0;
+            btnCancel.FlatAppearance.BorderSize = 2;
+            btnCancel.FlatAppearance.BorderColor = Color.FromArgb(0, 120, 215);
+
+            btnCancel.GotFocus += (s, e) =>
+            {
+                this.AcceptButton = btnCancel;
+                btnCancel.BackColor = Color.FromArgb(225, 240, 255);
+                btnCancel.ForeColor = Color.FromArgb(0, 50, 140);
+                btnCancel.FlatAppearance.BorderSize = 2;
+                btnCancel.FlatAppearance.BorderColor = Color.FromArgb(0, 120, 215);
+                btnCancel.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+                btnCancel.Invalidate();
+            };
+
+            btnCancel.LostFocus += (s, e) =>
+            {
+                btnCancel.BackColor = Color.FromArgb(240, 243, 246);
+                btnCancel.ForeColor = Color.FromArgb(40, 45, 50);
+                btnCancel.FlatAppearance.BorderSize = 1;
+                btnCancel.FlatAppearance.BorderColor = Color.FromArgb(190, 195, 200);
+                btnCancel.Font = new Font("Segoe UI", 9.5f, FontStyle.Regular);
+                btnCancel.Invalidate();
+            };
+
+            btnCancel.Paint += (s, pe) =>
+            {
+                if (btnCancel.Focused)
+                {
+                    var rect = btnCancel.ClientRectangle;
+                    rect.Inflate(-4, -4);
+                    ControlPaint.DrawFocusRectangle(pe.Graphics, rect);
+                }
+            };
 
             this.Controls.Add(iconBox);
             this.Controls.Add(lblWarning);
@@ -201,14 +248,16 @@ namespace Custode2.UI
             this.Controls.Add(btnAction);
             this.Controls.Add(btnCancel);
 
-            // Focus on Cancel button by default for safety on warnings
-            this.AcceptButton = btnAction;
+            // Default button is explicitly Cancel to prevent accidental macro submission on Enter
+            this.AcceptButton = btnCancel;
             this.CancelButton = btnCancel;
+            this.ActiveControl = btnCancel;
 
-            if (dialogType == SecurityDialogType.ProcessMismatch)
+            this.Shown += (s, e) =>
             {
-                this.Shown += (s, e) => btnCancel.Focus();
-            }
+                btnCancel.Focus();
+                btnCancel.Invalidate();
+            };
 
             // Dynamically calculate form client dimensions so nothing is ever clipped
             this.ClientSize = new Size(left + maxContentWidth + 25, btnCancel.Bottom + 20);
