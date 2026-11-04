@@ -215,6 +215,38 @@ namespace Custode2.Macro
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern IntPtr GetModuleHandle(string lpModuleName);
+
+        // --- System Cursor APIs ---
+        public const uint SPI_SETCURSORS = 0x0057;
+        public const int IDC_CROSS = 32515;
+
+        public const uint OCR_NORMAL = 32512;
+        public const uint OCR_IBEAM = 32513;
+        public const uint OCR_WAIT = 32514;
+        public const uint OCR_CROSS = 32515;
+        public const uint OCR_UP = 32516;
+        public const uint OCR_SIZE = 32640;
+        public const uint OCR_ICON = 32641;
+        public const uint OCR_SIZENWSE = 32642;
+        public const uint OCR_SIZENESW = 32643;
+        public const uint OCR_SIZEWE = 32644;
+        public const uint OCR_SIZENS = 32645;
+        public const uint OCR_SIZEALL = 32646;
+        public const uint OCR_HAND = 32649;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetSystemCursor(IntPtr hcur, uint id);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr LoadCursor(IntPtr hInstance, int lpCursorName);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr CopyIcon(IntPtr hIcon);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
     }
 }
 

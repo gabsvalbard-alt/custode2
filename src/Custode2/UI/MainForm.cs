@@ -148,15 +148,15 @@ namespace Custode2.UI
             btnDelete = new Button { Text = "🗑️ Elimina", Location = new Point(320, 10), Size = new Size(95, 32), ForeColor = Color.FromArgb(180, 40, 20) };
             btnDelete.Click += (s, e) => DeleteSelected();
 
-            var btnMirino = new Button
+            var btnRilevaApp = new Button
             {
-                Text = "🎯 Rileva con Mirino",
+                Text = "🎯 Rileva applicazione",
                 Location = new Point(420, 10),
-                Size = new Size(160, 32),
+                Size = new Size(165, 32),
                 BackColor = Color.FromArgb(240, 243, 246),
                 FlatStyle = FlatStyle.Flat
             };
-            btnMirino.Click += (s, e) => DetectProcessWithMirino();
+            btnRilevaApp.Click += (s, e) => DetectProcessWithMirino();
 
             btnTestMacro = new Button
             {
@@ -170,7 +170,7 @@ namespace Custode2.UI
             pnlBottom.Controls.Add(btnEdit);
             pnlBottom.Controls.Add(btnDuplicate);
             pnlBottom.Controls.Add(btnDelete);
-            pnlBottom.Controls.Add(btnMirino);
+            pnlBottom.Controls.Add(btnRilevaApp);
             pnlBottom.Controls.Add(btnTestMacro);
 
             tab.Controls.Add(lvCredentials);
@@ -736,7 +736,7 @@ namespace Custode2.UI
                     string info = string.Format("🎯 Applicazione Rilevata:\n\n• Processo: {0}\n• Titolo Finestra: {1}\n\nVuoi creare una nuova credenziale preimpostata con questo processo?",
                         result.ProcessName, string.IsNullOrEmpty(result.WindowTitle) ? "-" : result.WindowTitle);
 
-                    var answer = MessageBox.Show(info, "Custode 2.0 - Mirino Applicazione", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                    var answer = MessageBox.Show(info, "Custode 2.0 - Rilevamento Applicazione", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
                     if (answer == DialogResult.Yes)
                     {
                         var entry = new CredentialEntry

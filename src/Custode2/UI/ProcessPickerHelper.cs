@@ -28,6 +28,17 @@ namespace Custode2.UI
         private static Action<ProcessPickerResult> _completionCallback;
         private static Form _ownerForm;
         private static IntPtr _lastHoverRoot = IntPtr.Zero;
+        private static bool _cursorReplaced = false;
+
+        static ProcessPickerHelper()
+        {
+            try
+            {
+                Application.ApplicationExit += (s, e) => RestoreSystemCursors();
+                AppDomain.CurrentDomain.ProcessExit += (s, e) => RestoreSystemCursors();
+            }
+            catch { }
+        }
 
         public static void StartPicking(Form ownerForm, Action<ProcessPickerResult> onComplete)
         {
@@ -45,8 +56,8 @@ namespace Custode2.UI
             _badgeOverlay = new BadgeOverlay();
             _badgeOverlay.Show();
 
-            // 3. Set crosshair cursor
-            Cursor.Current = Cursors.Cross;
+            // 3. Set crosshair cursor system-wide across all windows
+            ApplyCrosshairCursor();
 
             // 4. Install low-level hooks
             _mouseHookProc = MouseHookCallback;
@@ -57,8 +68,59 @@ namespace Custode2.UI
             _kbHook = NativeMethods.SetWindowsHookEx(NativeMethods.WH_KEYBOARD_LL, _kbHookProc, hMod, 0);
         }
 
+        private static void ApplyCrosshairCursor()
+        {
+            if (_cursorReplaced) return;
+            try
+            {
+                uint[] ids = new uint[]
+                {
+                    NativeMethods.OCR_NORMAL,
+                    NativeMethods.OCR_IBEAM,
+                    NativeMethods.OCR_HAND,
+                    NativeMethods.OCR_UP,
+                    NativeMethods.OCR_SIZEALL,
+                    NativeMethods.OCR_SIZEWE,
+                    NativeMethods.OCR_SIZENS,
+                    NativeMethods.OCR_SIZENWSE,
+                    NativeMethods.OCR_SIZENESW
+                };
+
+                IntPtr hCross = NativeMethods.LoadCursor(IntPtr.Zero, NativeMethods.IDC_CROSS);
+                if (hCross != IntPtr.Zero)
+                {
+                    foreach (uint id in ids)
+                    {
+                        IntPtr hCopy = NativeMethods.CopyIcon(hCross);
+                        if (hCopy != IntPtr.Zero)
+                        {
+                            NativeMethods.SetSystemCursor(hCopy, id);
+                        }
+                    }
+                    _cursorReplaced = true;
+                }
+            }
+            catch { }
+        }
+
+        private static void RestoreSystemCursors()
+        {
+            if (!_cursorReplaced) return;
+            try
+            {
+                NativeMethods.SystemParametersInfo(NativeMethods.SPI_SETCURSORS, 0, IntPtr.Zero, 0);
+            }
+            catch { }
+            finally
+            {
+                _cursorReplaced = false;
+            }
+        }
+
         private static void StopPicking()
         {
+            RestoreSystemCursors();
+
             if (_mouseHook != IntPtr.Zero)
             {
                 NativeMethods.UnhookWindowsHookEx(_mouseHook);
@@ -82,7 +144,6 @@ namespace Custode2.UI
                 _badgeOverlay = null;
             }
 
-            Cursor.Current = Cursors.Default;
             _lastHoverRoot = IntPtr.Zero;
         }
 
@@ -92,10 +153,9 @@ namespace Custode2.UI
             {
                 int msg = wParam.ToInt32();
 
-                // Mouse move: update crosshair cursor, highlight border, and badge
+                // Mouse move: update highlight border and badge
                 if (msg == NativeMethods.WM_MOUSEMOVE)
                 {
-                    Cursor.Current = Cursors.Cross;
                     var hookStruct = (NativeMethods.MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(NativeMethods.MSLLHOOKSTRUCT));
                     UpdateHover(hookStruct.pt.X, hookStruct.pt.Y);
                 }
@@ -402,3 +462,4 @@ namespace Custode2.UI
         }
     }
 }
+

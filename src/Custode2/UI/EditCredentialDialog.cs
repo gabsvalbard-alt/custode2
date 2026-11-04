@@ -104,15 +104,15 @@ namespace Custode2.UI
             var lblFilter = new Label { Text = "Filtro Processo / App:", Location = new Point(labelX, y + 3), AutoSize = true };
             txtAppFilter = new TextBox { Location = new Point(inputX, y), Width = inputWidth - 110 };
 
-            var btnMirino = new Button
+            var btnRileva = new Button
             {
-                Text = "🎯 Mirino",
+                Text = "🎯 Rileva",
                 Location = new Point(inputX + inputWidth - 102, y - 1),
                 Size = new Size(102, 27),
                 BackColor = Color.FromArgb(240, 243, 246),
                 FlatStyle = FlatStyle.Flat
             };
-            btnMirino.Click += (s, e) =>
+            btnRileva.Click += (s, e) =>
             {
                 this.WindowState = FormWindowState.Minimized;
                 ProcessPickerHelper.StartPicking(this, result =>
@@ -132,10 +132,10 @@ namespace Custode2.UI
                 });
             };
 
-            var lblFilterHint = new Label { Text = "Es. saplogon.exe o usa '🎯 Mirino' per toccare la finestra dell'app", Location = new Point(inputX, y + 26), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
+            var lblFilterHint = new Label { Text = "Es. saplogon.exe o usa '🎯 Rileva' per toccare la finestra dell'app", Location = new Point(inputX, y + 26), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
             this.Controls.Add(lblFilter);
             this.Controls.Add(txtAppFilter);
-            this.Controls.Add(btnMirino);
+            this.Controls.Add(btnRileva);
             this.Controls.Add(lblFilterHint);
 
             // Bypass Security Check Checkbox
