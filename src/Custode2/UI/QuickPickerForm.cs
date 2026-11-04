@@ -34,6 +34,7 @@ namespace Custode2.UI
         private Point _openCursorPos = Point.Empty;
         private string _targetProcessName = string.Empty;
         private string _targetWindowTitle = string.Empty;
+        private Timer _autoCloseTimer;
 
         private ColumnHeader colIndex;
         private ColumnHeader colTitle;
@@ -93,7 +94,7 @@ namespace Custode2.UI
                 Font = new Font("Segoe UI", 12.5f, FontStyle.Regular),
                 BorderStyle = BorderStyle.FixedSingle
             };
-            txtSearch.TextChanged += (s, e) => FilterEntries();
+            txtSearch.TextChanged += (s, e) => { ResetAutoCloseTimer(); FilterEntries(); };
             txtSearch.KeyDown += HandleKeyNavigation;
 
             // Spacer between search and header
@@ -137,6 +138,15 @@ namespace Custode2.UI
             lvResults.DoubleClick += (s, e) => ExecuteSelected();
             lvResults.MouseClick += LvResults_MouseClick;
             lvResults.KeyDown += HandleKeyNavigation;
+            lvResults.MouseMove += (s, e) => ResetAutoCloseTimer();
+
+            // Auto-close inactivity timer
+            _autoCloseTimer = new Timer();
+            _autoCloseTimer.Tick += (s, e) =>
+            {
+                _autoCloseTimer.Stop();
+                CancelAndClose();
+            };
 
             // Spacer above hint
             pnlHintSpacer = new Panel { Dock = DockStyle.Bottom, Height = 6 };
@@ -259,6 +269,12 @@ namespace Custode2.UI
 
             // 3. Position popup: Cursor position (default) or Center of screen
             PositionWindow();
+
+            // 4. Start auto-close inactivity timer
+            int timeoutSec = _settings.PickerTimeoutSeconds > 0 ? _settings.PickerTimeoutSeconds : 30;
+            _autoCloseTimer.Interval = timeoutSec * 1000;
+            _autoCloseTimer.Stop();
+            _autoCloseTimer.Start();
 
             this.TopMost = true;
             this.Show();
@@ -562,8 +578,18 @@ namespace Custode2.UI
             }
         }
 
+        private void ResetAutoCloseTimer()
+        {
+            if (_autoCloseTimer != null && _isShowingPicker)
+            {
+                _autoCloseTimer.Stop();
+                _autoCloseTimer.Start();
+            }
+        }
+
         private void CopyPasswordAndClose(CredentialEntry entry, ListViewItem.ListViewSubItem subItem)
         {
+            if (_autoCloseTimer != null) _autoCloseTimer.Stop();
             if (entry == null) return;
 
             if (subItem != null)
@@ -592,6 +618,8 @@ namespace Custode2.UI
 
         private void HandleKeyNavigation(object sender, KeyEventArgs e)
         {
+            ResetAutoCloseTimer();
+
             // 1. Ctrl+C: copy selected password to clipboard
             if (e.Control && e.KeyCode == Keys.C)
             {
@@ -668,6 +696,7 @@ namespace Custode2.UI
 
         private void ExecuteSelected()
         {
+            if (_autoCloseTimer != null) _autoCloseTimer.Stop();
             if (lvResults.SelectedItems.Count == 0) return;
 
             var entry = lvResults.SelectedItems[0].Tag as CredentialEntry;
@@ -682,12 +711,27 @@ namespace Custode2.UI
 
         private void CancelAndClose()
         {
+            if (_autoCloseTimer != null) _autoCloseTimer.Stop();
             _isShowingPicker = false;
             this.Hide();
             if (_previousForegroundWindow != IntPtr.Zero)
             {
                 NativeMethods.SetForegroundWindow(_previousForegroundWindow);
             }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (_autoCloseTimer != null)
+                {
+                    _autoCloseTimer.Stop();
+                    _autoCloseTimer.Dispose();
+                    _autoCloseTimer = null;
+                }
+            }
+            base.Dispose(disposing);
         }
 
         protected override void OnDeactivate(EventArgs e)

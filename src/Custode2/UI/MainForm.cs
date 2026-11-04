@@ -39,6 +39,7 @@ namespace Custode2.UI
         private Button btnResetColor;
         private CheckBox chkRandomColor;
         private NumericUpDown numClipboardSeconds;
+        private NumericUpDown numPickerTimeoutSeconds;
 
         // Tab: Macro & Whitelist / Blacklist
         private TextBox txtDefaultTemplate;
@@ -248,6 +249,20 @@ namespace Custode2.UI
             gbClipboard.Controls.Add(lblSec);
             gbClipboard.Controls.Add(lblClipboardHint);
             pnl.Controls.Add(gbClipboard);
+
+            // Group 5: Timeout Chiusura Automatica Popup
+            y += 90;
+            var gbTimeout = new GroupBox { Text = "Timeout Chiusura Automatica Popup", Location = new Point(15, y), Size = new Size(910, 75) };
+            var lblTimeout = new Label { Text = "Chiudi popup dopo:", Location = new Point(15, 28), AutoSize = true };
+            numPickerTimeoutSeconds = new NumericUpDown { Location = new Point(165, 26), Width = 70, Minimum = 5, Maximum = 300, Value = 30 };
+            var lblTimeoutSec = new Label { Text = "secondi", Location = new Point(245, 28), AutoSize = true };
+            var lblTimeoutHint = new Label { Text = "(chiude automaticamente il popup in assenza di scelte dell'utente per sicurezza, default: 30s)", Location = new Point(315, 28), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
+
+            gbTimeout.Controls.Add(lblTimeout);
+            gbTimeout.Controls.Add(numPickerTimeoutSeconds);
+            gbTimeout.Controls.Add(lblTimeoutSec);
+            gbTimeout.Controls.Add(lblTimeoutHint);
+            pnl.Controls.Add(gbTimeout);
 
             // Pulsante Salva Impostazioni in fondo alla scheda
             y += 90;
@@ -532,6 +547,10 @@ namespace Custode2.UI
             int clipSec = s.ClipboardClearSeconds > 0 ? s.ClipboardClearSeconds : 15;
             numClipboardSeconds.Value = Math.Max(3, Math.Min(120, clipSec));
 
+            // Auto-close Timeout
+            int timeoutSec = s.PickerTimeoutSeconds > 0 ? s.PickerTimeoutSeconds : 30;
+            numPickerTimeoutSeconds.Value = Math.Max(5, Math.Min(300, timeoutSec));
+
             // Startup & Notification
             chkStartWithWindows.Checked = StartupHelper.IsStartupEnabled();
             chkStartupNotification.Checked = s.ShowStartupNotification;
@@ -570,6 +589,7 @@ namespace Custode2.UI
             s.PickerRandomColor = chkRandomColor.Checked;
             s.PickerPositionMode = rbPosCenter.Checked ? "CenterScreen" : "Cursor";
             s.ClipboardClearSeconds = (int)numClipboardSeconds.Value;
+            s.PickerTimeoutSeconds = (int)numPickerTimeoutSeconds.Value;
 
             s.StartWithWindows = chkStartWithWindows.Checked;
             StartupHelper.SetStartupEnabled(chkStartWithWindows.Checked);
