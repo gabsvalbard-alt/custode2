@@ -17,6 +17,8 @@ namespace Custode2.UI
         private readonly AppSettings _settings;
         private readonly Action _onSettingsUpdated;
         private IntPtr _previousForegroundWindow;
+        private bool _isShowingPicker = false;
+        private DateTime _openedAt = DateTime.MinValue;
 
         public QuickPickerForm(List<CredentialEntry> entries, AppSettings settings, Action onSettingsUpdated)
         {
@@ -31,7 +33,7 @@ namespace Custode2.UI
         {
             this.FormBorderStyle = FormBorderStyle.None;
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.Size = new Size(540, 360);
+            this.Size = new Size(650, 400);
             this.BackColor = Color.FromArgb(32, 33, 36);
             this.ShowInTaskbar = false;
             this.TopMost = true;
@@ -41,7 +43,7 @@ namespace Custode2.UI
             var pnlMain = new Panel
             {
                 Dock = DockStyle.Fill,
-                Padding = new Padding(12),
+                Padding = new Padding(14),
                 BackColor = Color.FromArgb(32, 33, 36)
             };
 
@@ -49,7 +51,7 @@ namespace Custode2.UI
             txtSearch = new TextBox
             {
                 Dock = DockStyle.Top,
-                Font = new Font("Segoe UI", 12f, FontStyle.Regular),
+                Font = new Font("Segoe UI", 13f, FontStyle.Regular),
                 BackColor = Color.FromArgb(48, 49, 52),
                 ForeColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle
@@ -68,11 +70,11 @@ namespace Custode2.UI
                 BorderStyle = BorderStyle.None,
                 BackColor = Color.FromArgb(32, 33, 36),
                 ForeColor = Color.WhiteSmoke,
-                Font = new Font("Segoe UI", 10f),
+                Font = new Font("Segoe UI", 10.5f),
                 Margin = new Padding(0, 10, 0, 0)
             };
-            lvResults.Columns.Add("Servizio / Titolo", 260);
-            lvResults.Columns.Add("Utente / Email", 230);
+            lvResults.Columns.Add("Servizio / Titolo", 320);
+            lvResults.Columns.Add("Utente / Email", 280);
             lvResults.DoubleClick += (s, e) => ExecuteSelected();
             lvResults.KeyDown += (s, e) =>
             {
@@ -92,14 +94,14 @@ namespace Custode2.UI
             lblHint = new Label
             {
                 Dock = DockStyle.Bottom,
-                Height = 24,
+                Height = 26,
                 Text = "↑↓ Scegli   •   Invio: Compila ed esegui Macro   •   Esc: Annulla",
-                ForeColor = Color.FromArgb(160, 160, 160),
+                ForeColor = Color.FromArgb(170, 170, 170),
                 TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font("Segoe UI", 8.5f)
+                Font = new Font("Segoe UI", 9f)
             };
 
-            var pnlSpacer = new Panel { Dock = DockStyle.Top, Height = 8 };
+            var pnlSpacer = new Panel { Dock = DockStyle.Top, Height = 10 };
 
             pnlMain.Controls.Add(lvResults);
             pnlMain.Controls.Add(pnlSpacer);
@@ -111,10 +113,19 @@ namespace Custode2.UI
         public void ShowPicker(IntPtr previousWindow)
         {
             _previousForegroundWindow = previousWindow;
+            _openedAt = DateTime.Now;
+            _isShowingPicker = true;
+
             txtSearch.Clear();
             FilterEntries();
+
+            // Center on active screen
+            this.CenterToScreen();
+            this.TopMost = true;
             this.Show();
+            this.BringToFront();
             this.Activate();
+            NativeMethods.SetForegroundWindow(this.Handle);
             txtSearch.Focus();
         }
 
@@ -191,6 +202,7 @@ namespace Custode2.UI
             if (entry == null) return;
 
             IntPtr target = _previousForegroundWindow;
+            _isShowingPicker = false;
             this.Hide();
 
             MacroEngine.Execute(entry, target, _settings, _onSettingsUpdated);
@@ -198,6 +210,7 @@ namespace Custode2.UI
 
         private void CancelAndClose()
         {
+            _isShowingPicker = false;
             this.Hide();
             if (_previousForegroundWindow != IntPtr.Zero)
             {
@@ -208,8 +221,15 @@ namespace Custode2.UI
         protected override void OnDeactivate(EventArgs e)
         {
             base.OnDeactivate(e);
+            if (!_isShowingPicker) return;
+
+            // Prevent premature closure within the first 400ms while window activates
+            if ((DateTime.Now - _openedAt).TotalMilliseconds < 400)
+            {
+                return;
+            }
+
             CancelAndClose();
         }
     }
 }
-

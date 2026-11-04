@@ -31,7 +31,7 @@ namespace Custode2.UI
         private void InitializeComponent()
         {
             this.Text = Entry.Id == null ? "Nuova Credenziale" : "Modifica Credenziale";
-            this.Size = new Size(580, 560);
+            this.Size = new Size(680, 580);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -41,7 +41,7 @@ namespace Custode2.UI
 
             int labelX = 25;
             int inputX = 175;
-            int inputWidth = 355;
+            int inputWidth = 450;
             int y = 20;
             int spacing = 42;
 
@@ -61,8 +61,8 @@ namespace Custode2.UI
             // Password
             y += spacing;
             var lblPassword = new Label { Text = "Password *:", Location = new Point(labelX, y + 3), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
-            txtPassword = new TextBox { Location = new Point(inputX, y), Width = inputWidth - 55, UseSystemPasswordChar = true };
-            btnTogglePassword = new Button { Text = "Mostra", Location = new Point(inputX + inputWidth - 50, y - 1), Width = 50, Height = txtPassword.Height + 2 };
+            txtPassword = new TextBox { Location = new Point(inputX, y), Width = inputWidth - 65, UseSystemPasswordChar = true };
+            btnTogglePassword = new Button { Text = "Mostra", Location = new Point(inputX + inputWidth - 60, y - 1), Width = 60, Height = txtPassword.Height + 2 };
             btnTogglePassword.Click += (s, e) =>
             {
                 txtPassword.UseSystemPasswordChar = !txtPassword.UseSystemPasswordChar;
@@ -83,9 +83,9 @@ namespace Custode2.UI
             y += 28;
             var pnlPresets = new FlowLayoutPanel { Location = new Point(inputX, y), Width = inputWidth, Height = 30 };
             AddTokenButton(pnlPresets, "$USER$");
-            AddTokenButton(pnlPresets, "$TAB$");
+            AddTokenButton(pnlPresets, "<TAB>");
             AddTokenButton(pnlPresets, "$PASS$");
-            AddTokenButton(pnlPresets, "$ENTER$");
+            AddTokenButton(pnlPresets, "<ENTER>");
             AddTokenButton(pnlPresets, "$DELAY(500)$");
             this.Controls.Add(pnlPresets);
 
@@ -93,7 +93,7 @@ namespace Custode2.UI
             y += spacing;
             var lblHotkey = new Label { Text = "Scorciatoia Diretta:", Location = new Point(labelX, y + 3), AutoSize = true };
             txtHotkey = new TextBox { Location = new Point(inputX, y), Width = inputWidth };
-            var lblHotkeyHint = new Label { Text = "Es. Ctrl+Alt+1, Ctrl+Shift+G (lascia vuoto se non necessaria)", Location = new Point(inputX, y + 26), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8f) };
+            var lblHotkeyHint = new Label { Text = "Es. Ctrl+Alt+1, Ctrl+Shift+G (lascia vuoto se non necessaria)", Location = new Point(inputX, y + 26), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
             this.Controls.Add(lblHotkey);
             this.Controls.Add(txtHotkey);
             this.Controls.Add(lblHotkeyHint);
@@ -102,7 +102,7 @@ namespace Custode2.UI
             y += spacing + 12;
             var lblFilter = new Label { Text = "Filtro Processo / App:", Location = new Point(labelX, y + 3), AutoSize = true };
             txtAppFilter = new TextBox { Location = new Point(inputX, y), Width = inputWidth };
-            var lblFilterHint = new Label { Text = "Es. saplogon.exe o parte del titolo finestra (opzionale)", Location = new Point(inputX, y + 26), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8f) };
+            var lblFilterHint = new Label { Text = "Es. saplogon.exe o parte del titolo finestra (opzionale)", Location = new Point(inputX, y + 26), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
             this.Controls.Add(lblFilter);
             this.Controls.Add(txtAppFilter);
             this.Controls.Add(lblFilterHint);
@@ -113,7 +113,6 @@ namespace Custode2.UI
             {
                 Text = "Fidati sempre (non chiedere conferma se il campo password non è mascherato)",
                 Location = new Point(inputX, y),
-                Width = inputWidth,
                 AutoSize = true
             };
             this.Controls.Add(chkBypassSecurity);
@@ -127,11 +126,11 @@ namespace Custode2.UI
 
             // Bottom Buttons
             y += 75;
-            btnOk = new Button { Text = "Salva", Location = new Point(inputX + inputWidth - 180, y), Width = 85, Height = 32, BackColor = Color.FromArgb(0, 120, 215), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnOk = new Button { Text = "Salva", Location = new Point(inputX + inputWidth - 190, y), Width = 90, Height = 32, BackColor = Color.FromArgb(0, 120, 215), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnOk.FlatAppearance.BorderSize = 0;
             btnOk.Click += BtnOk_Click;
 
-            btnCancel = new Button { Text = "Annulla", DialogResult = DialogResult.Cancel, Location = new Point(inputX + inputWidth - 90, y), Width = 85, Height = 32, BackColor = Color.FromArgb(235, 235, 235), FlatStyle = FlatStyle.Flat };
+            btnCancel = new Button { Text = "Annulla", DialogResult = DialogResult.Cancel, Location = new Point(inputX + inputWidth - 90, y), Width = 90, Height = 32, BackColor = Color.FromArgb(235, 235, 235), FlatStyle = FlatStyle.Flat };
             btnCancel.FlatAppearance.BorderSize = 0;
 
             this.Controls.Add(btnOk);
@@ -146,10 +145,10 @@ namespace Custode2.UI
             {
                 Text = token,
                 AutoSize = true,
-                Height = 24,
+                Height = 25,
                 BackColor = Color.FromArgb(240, 240, 242),
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 8f)
+                Font = new Font("Segoe UI", 8.5f)
             };
             btn.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200);
             btn.Click += (s, e) =>
@@ -195,4 +194,3 @@ namespace Custode2.UI
         }
     }
 }
-

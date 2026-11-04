@@ -33,7 +33,7 @@ namespace Custode2.UI
         private TextBox txtNewWhitelistProcess;
         private Button btnAddProcess;
         private Button btnRemoveProcess;
-        private Label lblVaultPath;
+        private TextBox txtVaultPath;
         private Button btnOpenFolder;
         private Button btnBackupNow;
 
@@ -51,7 +51,8 @@ namespace Custode2.UI
         private void InitializeComponent()
         {
             this.Text = "Custode delle chiavi 2.0 - Gestione";
-            this.Size = new Size(820, 560);
+            this.Size = new Size(950, 640);
+            this.MinimumSize = new Size(880, 560);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Font = new Font("Segoe UI", 9.5f, FontStyle.Regular);
             this.BackColor = Color.FromArgb(245, 246, 248);
@@ -76,7 +77,7 @@ namespace Custode2.UI
         {
             var pnlTop = new Panel { Dock = DockStyle.Top, Height = 50, Padding = new Padding(10) };
             var lblSearch = new Label { Text = "Cerca:", Location = new Point(10, 15), AutoSize = true };
-            txtSearch = new TextBox { Location = new Point(60, 12), Width = 300 };
+            txtSearch = new TextBox { Location = new Point(60, 12), Width = 340 };
             txtSearch.TextChanged += (s, e) => RefreshCredentialsList();
 
             pnlTop.Controls.Add(lblSearch);
@@ -90,30 +91,41 @@ namespace Custode2.UI
                 GridLines = true,
                 MultiSelect = false
             };
-            lvCredentials.Columns.Add("Titolo / Servizio", 190);
-            lvCredentials.Columns.Add("Nome Utente / Email", 180);
-            lvCredentials.Columns.Add("Scorciatoia", 100);
-            lvCredentials.Columns.Add("Filtro App", 110);
-            lvCredentials.Columns.Add("Template", 170);
+            lvCredentials.Columns.Add("Titolo / Servizio", 220);
+            lvCredentials.Columns.Add("Nome Utente / Email", 200);
+            lvCredentials.Columns.Add("Scorciatoia", 110);
+            lvCredentials.Columns.Add("Filtro App / Sicurezza", 150);
+            lvCredentials.Columns.Add("Template Macro", 220);
             lvCredentials.DoubleClick += (s, e) => EditSelected();
 
             var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 55, Padding = new Padding(10) };
 
-            btnAdd = new Button { Text = "➕ Aggiungi", Location = new Point(10, 10), Size = new Size(100, 32), BackColor = Color.FromArgb(0, 120, 215), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnAdd = new Button { Text = "➕ Aggiungi", Location = new Point(10, 10), Size = new Size(110, 32), BackColor = Color.FromArgb(0, 120, 215), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnAdd.FlatAppearance.BorderSize = 0;
             btnAdd.Click += (s, e) => AddCredential();
 
-            btnEdit = new Button { Text = "✏️ Modifica", Location = new Point(120, 10), Size = new Size(95, 32) };
+            btnEdit = new Button { Text = "✏️ Modifica", Location = new Point(130, 10), Size = new Size(100, 32) };
             btnEdit.Click += (s, e) => EditSelected();
 
-            btnDuplicate = new Button { Text = "📄 Duplica", Location = new Point(225, 10), Size = new Size(95, 32) };
+            btnDuplicate = new Button { Text = "📄 Duplica", Location = new Point(240, 10), Size = new Size(100, 32) };
             btnDuplicate.Click += (s, e) => DuplicateSelected();
 
-            btnDelete = new Button { Text = "🗑️ Elimina", Location = new Point(330, 10), Size = new Size(95, 32), ForeColor = Color.FromArgb(180, 40, 20) };
+            btnDelete = new Button { Text = "🗑️ Elimina", Location = new Point(350, 10), Size = new Size(100, 32), ForeColor = Color.FromArgb(180, 40, 20) };
             btnDelete.Click += (s, e) => DeleteSelected();
 
-            btnTestMacro = new Button { Text = "⏱️ Prova Inserimento (3s)", Location = new Point(590, 10), Size = new Size(190, 32) };
+            btnTestMacro = new Button
+            {
+                Text = "⏱️ Prova Inserimento (3s)",
+                Size = new Size(200, 32),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right
+            };
+            btnTestMacro.Location = new Point(pnlBottom.Width - 215, 10);
             btnTestMacro.Click += (s, e) => TestMacroCountdown();
+
+            pnlBottom.Resize += (s, e) =>
+            {
+                btnTestMacro.Location = new Point(pnlBottom.Width - 215, 10);
+            };
 
             pnlBottom.Controls.Add(btnAdd);
             pnlBottom.Controls.Add(btnEdit);
@@ -133,14 +145,16 @@ namespace Custode2.UI
 
             // Global Picker Hotkey
             var lblPicker = new Label { Text = "Scorciatoia Quick Picker (Barra Ricerca Rapida):", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
-            txtPickerHotkey = new TextBox { Location = new Point(20, y + 25), Width = 260 };
+            txtPickerHotkey = new TextBox { Location = new Point(20, y + 25), Width = 280 };
+            var lblPickerHint = new Label { Text = "Es. Ctrl+Alt+Space, Win+Shift+C, Ctrl+Alt+C", Location = new Point(310, y + 27), AutoSize = true, ForeColor = Color.Gray };
             pnl.Controls.Add(lblPicker);
             pnl.Controls.Add(txtPickerHotkey);
+            pnl.Controls.Add(lblPickerHint);
 
             // Default Template
             y += 70;
             var lblDefTemplate = new Label { Text = "Template Macro Predefinito per nuove voci:", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
-            txtDefaultTemplate = new TextBox { Location = new Point(20, y + 25), Width = 350 };
+            txtDefaultTemplate = new TextBox { Location = new Point(20, y + 25), Width = 380 };
             pnl.Controls.Add(lblDefTemplate);
             pnl.Controls.Add(txtDefaultTemplate);
 
@@ -155,13 +169,13 @@ namespace Custode2.UI
             y += 70;
             var lblWhitelistTitle = new Label { Text = "Processi Autorizzati (Bypass automatico controllo password):", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
             var lblWhitelistSub = new Label { Text = "Ideale per software aziendali come SAP GUI (saplogon.exe, sapgui.exe) o RDP (mstsc.exe)", Location = new Point(20, y + 22), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
-            lbWhitelist = new ListBox { Location = new Point(20, y + 45), Width = 280, Height = 95 };
+            lbWhitelist = new ListBox { Location = new Point(20, y + 45), Width = 300, Height = 105 };
 
-            txtNewWhitelistProcess = new TextBox { Location = new Point(310, y + 45), Width = 180 };
-            btnAddProcess = new Button { Text = "Aggiungi Processo", Location = new Point(310, y + 75), Width = 130, Height = 28 };
+            txtNewWhitelistProcess = new TextBox { Location = new Point(335, y + 45), Width = 220 };
+            btnAddProcess = new Button { Text = "Aggiungi Processo", Location = new Point(335, y + 78), Width = 150, Height = 28 };
             btnAddProcess.Click += (s, e) => AddWhitelistProcess();
 
-            btnRemoveProcess = new Button { Text = "Rimuovi Selezionato", Location = new Point(310, y + 110), Width = 140, Height = 28 };
+            btnRemoveProcess = new Button { Text = "Rimuovi Selezionato", Location = new Point(335, y + 115), Width = 160, Height = 28 };
             btnRemoveProcess.Click += (s, e) => RemoveWhitelistProcess();
 
             pnl.Controls.Add(lblWhitelistTitle);
@@ -172,17 +186,17 @@ namespace Custode2.UI
             pnl.Controls.Add(btnRemoveProcess);
 
             // Vault file location & Backup
-            y += 165;
+            y += 175;
             var lblVaultTitle = new Label { Text = "Archivio Crittografato (DPAPI):", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
-            lblVaultPath = new Label { Text = DpapiStorage.GetVaultFilePath(), Location = new Point(20, y + 25), AutoSize = true, ForeColor = Color.DarkSlateGray };
-            btnOpenFolder = new Button { Text = "📁 Apri Cartella Vault", Location = new Point(20, y + 50), Width = 160, Height = 30 };
+            txtVaultPath = new TextBox { ReadOnly = true, Text = DpapiStorage.GetVaultFilePath(), Location = new Point(20, y + 25), Width = 680, BackColor = Color.White };
+            btnOpenFolder = new Button { Text = "📁 Apri Cartella Vault", Location = new Point(20, y + 55), Width = 170, Height = 30 };
             btnOpenFolder.Click += (s, e) =>
             {
                 string dir = Path.GetDirectoryName(DpapiStorage.GetVaultFilePath());
                 if (Directory.Exists(dir)) Process.Start("explorer.exe", dir);
             };
 
-            btnBackupNow = new Button { Text = "💾 Crea Copia di Backup", Location = new Point(190, y + 50), Width = 170, Height = 30 };
+            btnBackupNow = new Button { Text = "💾 Crea Copia di Backup", Location = new Point(205, y + 55), Width = 180, Height = 30 };
             btnBackupNow.Click += (s, e) =>
             {
                 try
@@ -202,13 +216,13 @@ namespace Custode2.UI
             };
 
             pnl.Controls.Add(lblVaultTitle);
-            pnl.Controls.Add(lblVaultPath);
+            pnl.Controls.Add(txtVaultPath);
             pnl.Controls.Add(btnOpenFolder);
             pnl.Controls.Add(btnBackupNow);
 
             // Save Settings Button
-            y += 100;
-            var btnSaveSettings = new Button { Text = "💾 Salva Impostazioni", Location = new Point(20, y), Width = 180, Height = 34, BackColor = Color.FromArgb(0, 120, 215), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            y += 105;
+            var btnSaveSettings = new Button { Text = "💾 Salva Impostazioni", Location = new Point(20, y), Width = 190, Height = 35, BackColor = Color.FromArgb(0, 120, 215), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnSaveSettings.FlatAppearance.BorderSize = 0;
             btnSaveSettings.Click += (s, e) => SaveSettingsFromUI();
             pnl.Controls.Add(btnSaveSettings);

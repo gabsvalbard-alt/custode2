@@ -77,11 +77,16 @@ namespace Custode2.UI
 
             _hotkeyManager.UnregisterAll();
 
-            string dummyErr;
+            string pickerErr;
             // 1. Global Picker Hotkey
             if (!string.IsNullOrWhiteSpace(_vault.Settings.GlobalPickerHotkey))
             {
-                _hotkeyManager.Register(_vault.Settings.GlobalPickerHotkey, "__PICKER__", out dummyErr);
+                if (!_hotkeyManager.Register(_vault.Settings.GlobalPickerHotkey, "__PICKER__", out pickerErr))
+                {
+                    _trayIcon.ShowBalloonTip(4000, "Custode 2.0 - Scorciatoia non attiva",
+                        string.Format("Impossibile registrare '{0}':\n{1}\nPuoi cambiarla dalle Impostazioni.", _vault.Settings.GlobalPickerHotkey, pickerErr),
+                        ToolTipIcon.Warning);
+                }
             }
 
             // 2. Direct entry hotkeys
@@ -89,7 +94,8 @@ namespace Custode2.UI
             {
                 if (!string.IsNullOrWhiteSpace(entry.DirectHotkey))
                 {
-                    _hotkeyManager.Register(entry.DirectHotkey, entry.Id, out dummyErr);
+                    string entryErr;
+                    _hotkeyManager.Register(entry.DirectHotkey, entry.Id, out entryErr);
                 }
             }
         }

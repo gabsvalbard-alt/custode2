@@ -25,7 +25,7 @@ namespace Custode2.UI
         private void InitializeComponent(string entryTitle, string processName, string details)
         {
             this.Text = "Custode 2.0 - Controllo di Sicurezza Password";
-            this.Size = new Size(520, 260);
+            this.Size = new Size(580, 290);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -49,7 +49,7 @@ namespace Custode2.UI
                 Font = new Font("Segoe UI", 11f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(180, 40, 20),
                 Location = new Point(80, 20),
-                Size = new Size(400, 25)
+                Size = new Size(460, 25)
             };
 
             string detailMsg = string.IsNullOrEmpty(details) ? "" : string.Format("Dettagli: {0}\n", details);
@@ -59,7 +59,7 @@ namespace Custode2.UI
                        detailMsg +
                        "Vuoi inviare comunque la password?",
                 Location = new Point(80, 50),
-                Size = new Size(410, 85)
+                Size = new Size(460, 95)
             };
 
             chkRememberProcess = new CheckBox
@@ -67,8 +67,8 @@ namespace Custode2.UI
                 Text = string.IsNullOrEmpty(processName) 
                     ? "Fidati sempre di questa applicazione per le prossime volte" 
                     : string.Format("Fidati sempre dell'applicazione '{0}'", processName),
-                Location = new Point(80, 145),
-                Size = new Size(410, 24),
+                Location = new Point(80, 155),
+                Size = new Size(460, 24),
                 Checked = false
             };
 
@@ -76,7 +76,7 @@ namespace Custode2.UI
             {
                 Text = "Invia Comunque",
                 DialogResult = DialogResult.OK,
-                Location = new Point(240, 180),
+                Location = new Point(290, 195),
                 Size = new Size(130, 32),
                 BackColor = Color.FromArgb(220, 53, 69),
                 ForeColor = Color.White,
@@ -88,7 +88,7 @@ namespace Custode2.UI
             {
                 Text = "Annulla",
                 DialogResult = DialogResult.Cancel,
-                Location = new Point(380, 180),
+                Location = new Point(430, 195),
                 Size = new Size(110, 32),
                 BackColor = Color.FromArgb(230, 230, 230),
                 FlatStyle = FlatStyle.Flat

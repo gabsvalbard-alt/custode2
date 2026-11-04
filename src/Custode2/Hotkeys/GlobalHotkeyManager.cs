@@ -7,19 +7,25 @@ namespace Custode2.Hotkeys
 {
     public class GlobalHotkeyManager : IDisposable
     {
-        private class HotkeyWindow : NativeWindow
+        private class HotkeyForm : Form
         {
             private readonly Action<int> _onHotkeyPressed;
 
-            public HotkeyWindow(Action<int> onHotkeyPressed)
+            public HotkeyForm(Action<int> onHotkeyPressed)
             {
                 _onHotkeyPressed = onHotkeyPressed;
-                var cp = new CreateParams
-                {
-                    Caption = "Custode2_HotkeySink",
-                    Parent = IntPtr.Zero
-                };
-                CreateHandle(cp);
+                this.FormBorderStyle = FormBorderStyle.None;
+                this.ShowInTaskbar = false;
+                this.WindowState = FormWindowState.Minimized;
+                this.Size = new System.Drawing.Size(0, 0);
+                this.Opacity = 0;
+                // Force Win32 window handle creation
+                IntPtr h = this.Handle;
+            }
+
+            protected override void SetVisibleCore(bool value)
+            {
+                base.SetVisibleCore(false);
             }
 
             protected override void WndProc(ref Message m)
@@ -36,7 +42,7 @@ namespace Custode2.Hotkeys
             }
         }
 
-        private readonly HotkeyWindow _window;
+        private readonly HotkeyForm _form;
         private readonly Dictionary<int, string> _idToTag = new Dictionary<int, string>();
         private int _currentId = 1000;
 
@@ -44,7 +50,7 @@ namespace Custode2.Hotkeys
 
         public GlobalHotkeyManager()
         {
-            _window = new HotkeyWindow(HandleHotkeyPressed);
+            _form = new HotkeyForm(HandleHotkeyPressed);
         }
 
         private void HandleHotkeyPressed(int id)
@@ -73,10 +79,18 @@ namespace Custode2.Hotkeys
             }
 
             int id = ++_currentId;
-            bool success = NativeMethods.RegisterHotKey(_window.Handle, id, modifiers | NativeMethods.MOD_NOREPEAT, vk);
+
+            // Try first with MOD_NOREPEAT
+            bool success = NativeMethods.RegisterHotKey(_form.Handle, id, modifiers | NativeMethods.MOD_NOREPEAT, vk);
             if (!success)
             {
-                errorMessage = string.Format("Impossibile registrare '{0}' (già in uso da un'altra applicazione).", hotkeyString);
+                // Fallback without MOD_NOREPEAT for compatibility
+                success = NativeMethods.RegisterHotKey(_form.Handle, id, modifiers, vk);
+            }
+
+            if (!success)
+            {
+                errorMessage = string.Format("Impossibile registrare '{0}' (il tasto è già in uso da un'altra applicazione).", hotkeyString);
                 return false;
             }
 
@@ -88,7 +102,7 @@ namespace Custode2.Hotkeys
         {
             foreach (var kvp in _idToTag)
             {
-                NativeMethods.UnregisterHotKey(_window.Handle, kvp.Key);
+                NativeMethods.UnregisterHotKey(_form.Handle, kvp.Key);
             }
             _idToTag.Clear();
         }
@@ -125,15 +139,37 @@ namespace Custode2.Hotkeys
                 }
                 else
                 {
-                    // Attempt key parsing
-                    if (token.Equals("SPACE", StringComparison.OrdinalIgnoreCase) || token.Equals("SPAZIO", StringComparison.OrdinalIgnoreCase))
+                    // 1. Single character check (Digits and Letters)
+                    if (token.Length == 1)
+                    {
+                        char c = char.ToUpperInvariant(token[0]);
+                        if (c >= '0' && c <= '9')
+                        {
+                            key = Keys.D0 + (c - '0');
+                        }
+                        else if (c >= 'A' && c <= 'Z')
+                        {
+                            key = (Keys)c;
+                        }
+                    }
+                    // 2. Named special keys
+                    else if (token.Equals("SPACE", StringComparison.OrdinalIgnoreCase) || token.Equals("SPAZIO", StringComparison.OrdinalIgnoreCase))
                     {
                         key = Keys.Space;
                     }
-                    else if (token.Equals("ENTER", StringComparison.OrdinalIgnoreCase) || token.Equals("INVIO", StringComparison.OrdinalIgnoreCase))
+                    else if (token.Equals("ENTER", StringComparison.OrdinalIgnoreCase) || token.Equals("INVIO", StringComparison.OrdinalIgnoreCase) || token.Equals("RETURN", StringComparison.OrdinalIgnoreCase))
                     {
                         key = Keys.Enter;
                     }
+                    else if (token.Equals("TAB", StringComparison.OrdinalIgnoreCase))
+                    {
+                        key = Keys.Tab;
+                    }
+                    else if (token.Equals("ESC", StringComparison.OrdinalIgnoreCase) || token.Equals("ESCAPE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        key = Keys.Escape;
+                    }
+                    // 3. Fallback to Enum.Parse (for F1..F12, Home, End, etc.)
                     else
                     {
                         try
@@ -142,14 +178,7 @@ namespace Custode2.Hotkeys
                         }
                         catch
                         {
-                            if (token.Length == 1)
-                            {
-                                char c = char.ToUpperInvariant(token[0]);
-                                if ((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))
-                                {
-                                    key = (Keys)c;
-                                }
-                            }
+                            // Ignored
                         }
                     }
                 }
@@ -167,9 +196,9 @@ namespace Custode2.Hotkeys
         public void Dispose()
         {
             UnregisterAll();
-            if (_window.Handle != IntPtr.Zero)
+            if (_form != null && !_form.IsDisposed)
             {
-                _window.DestroyHandle();
+                _form.Dispose();
             }
         }
     }

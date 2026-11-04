@@ -169,45 +169,52 @@ namespace Custode2.Macro
             var actions = new List<MacroAction>();
             if (string.IsNullOrEmpty(template)) return actions;
 
-            // Regex matches tokens like $USER$, $PASS$, $TAB$, $ENTER$, $INVIO$, $SPACE$, $ESC$, $DELAY(100)$
-            var regex = new Regex(@"(\$[A-Za-z0-9_]+(?:\(\d+\))?\$)", RegexOptions.Compiled);
+            // Regex matches tokens like $USER$, <USER>, [USER], {USER}, $TAB$, <TAB>, [TAB], $ENTER$, <INVIO>, $DELAY(100)$, etc.
+            var regex = new Regex(@"(\$[A-Za-z0-9_]+(?:\(\d+\))?\$|<[A-Za-z0-9_]+(?:\(\d+\))?>|\[[A-Za-z0-9_]+(?:\(\d+\))?\]|\{[A-Za-z0-9_]+(?:\(\d+\))?\})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
             string[] parts = regex.Split(template);
 
             foreach (var part in parts)
             {
                 if (string.IsNullOrEmpty(part)) continue;
 
-                if (part.StartsWith("$") && part.EndsWith("$"))
-                {
-                    string tokenUpper = part.ToUpperInvariant();
+                char start = part[0];
+                char end = part[part.Length - 1];
+                bool isToken = (start == '$' && end == '$') ||
+                               (start == '<' && end == '>') ||
+                               (start == '[' && end == ']') ||
+                               (start == '{' && end == '}');
 
-                    if (tokenUpper == "$USER$")
+                if (isToken && part.Length >= 3)
+                {
+                    string inner = part.Substring(1, part.Length - 2).Trim().ToUpperInvariant();
+
+                    if (inner == "USER" || inner == "USERNAME" || inner == "UTENTE")
                     {
                         actions.Add(new MacroAction { Type = ActionType.TypeUnicodeText, Text = entry.Username ?? string.Empty });
                     }
-                    else if (tokenUpper == "$PASS$")
+                    else if (inner == "PASS" || inner == "PASSWORD")
                     {
                         actions.Add(new MacroAction { Type = ActionType.TypePassword });
                     }
-                    else if (tokenUpper == "$TAB$")
+                    else if (inner == "TAB" || inner == "TABULATORE")
                     {
                         actions.Add(new MacroAction { Type = ActionType.PressVirtualKey, VirtualKey = NativeMethods.VK_TAB });
                     }
-                    else if (tokenUpper == "$ENTER$" || tokenUpper == "$INVIO$")
+                    else if (inner == "ENTER" || inner == "INVIO" || inner == "RETURN")
                     {
                         actions.Add(new MacroAction { Type = ActionType.PressVirtualKey, VirtualKey = NativeMethods.VK_RETURN });
                     }
-                    else if (tokenUpper == "$SPACE$" || tokenUpper == "$SPAZIO$")
+                    else if (inner == "SPACE" || inner == "SPAZIO")
                     {
                         actions.Add(new MacroAction { Type = ActionType.PressVirtualKey, VirtualKey = NativeMethods.VK_SPACE });
                     }
-                    else if (tokenUpper == "$ESC$" || tokenUpper == "$ESCAPE$")
+                    else if (inner == "ESC" || inner == "ESCAPE")
                     {
                         actions.Add(new MacroAction { Type = ActionType.PressVirtualKey, VirtualKey = NativeMethods.VK_ESCAPE });
                     }
-                    else if (tokenUpper.StartsWith("$DELAY(") && tokenUpper.EndsWith(")$"))
+                    else if (inner.StartsWith("DELAY(") && inner.EndsWith(")"))
                     {
-                        string numStr = part.Substring(7, part.Length - 9);
+                        string numStr = inner.Substring(6, inner.Length - 7);
                         int ms;
                         if (int.TryParse(numStr, out ms) && ms > 0)
                         {
