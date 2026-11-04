@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
@@ -31,6 +32,8 @@ namespace Custode2.UI
         private bool _isShowingPicker = false;
         private DateTime _openedAt = DateTime.MinValue;
         private Point _openCursorPos = Point.Empty;
+        private string _targetProcessName = string.Empty;
+        private string _targetWindowTitle = string.Empty;
 
         private ColumnHeader colIndex;
         private ColumnHeader colTitle;
@@ -214,6 +217,29 @@ namespace Custode2.UI
             _isShowingPicker = true;
             _openCursorPos = Cursor.Position;
 
+            // Detect target process name and window title for smart row auto-selection
+            _targetProcessName = string.Empty;
+            _targetWindowTitle = string.Empty;
+            if (previousWindow != IntPtr.Zero)
+            {
+                try
+                {
+                    uint pid;
+                    NativeMethods.GetWindowThreadProcessId(previousWindow, out pid);
+                    if (pid > 0)
+                    {
+                        var proc = Process.GetProcessById((int)pid);
+                        _targetProcessName = proc.ProcessName.ToLowerInvariant();
+                        if (!_targetProcessName.EndsWith(".exe")) _targetProcessName += ".exe";
+                    }
+
+                    var sb = new System.Text.StringBuilder(256);
+                    NativeMethods.GetWindowText(previousWindow, sb, sb.Capacity);
+                    _targetWindowTitle = sb.ToString();
+                }
+                catch { }
+            }
+
             // 1. Apply configured opacity (30% to 100%)
             int opacityVal = _settings.PickerOpacity > 0 ? _settings.PickerOpacity : 95;
             this.Opacity = Math.Max(0.3, Math.Min(1.0, opacityVal / 100.0));
@@ -391,10 +417,25 @@ namespace Custode2.UI
                 lvResults.Items.Add(lvi);
             }
 
-            if (lvResults.Items.Count > 0)
+            // Auto-select row matching target process / window title, otherwise first row
+            int selectedIndex = 0;
+            if (string.IsNullOrEmpty(query) && (!string.IsNullOrEmpty(_targetProcessName) || !string.IsNullOrEmpty(_targetWindowTitle)))
             {
-                lvResults.Items[0].Selected = true;
-                lvResults.Items[0].Focused = true;
+                for (int i = 0; i < matches.Count; i++)
+                {
+                    if (MatchesTargetProcess(matches[i], _targetProcessName, _targetWindowTitle))
+                    {
+                        selectedIndex = i;
+                        break; // Autoseleziona la prima che matcha
+                    }
+                }
+            }
+
+            if (lvResults.Items.Count > 0 && selectedIndex < lvResults.Items.Count)
+            {
+                lvResults.Items[selectedIndex].Selected = true;
+                lvResults.Items[selectedIndex].Focused = true;
+                lvResults.EnsureVisible(selectedIndex);
             }
 
             lvResults.EndUpdate();
@@ -432,6 +473,61 @@ namespace Custode2.UI
             colUser.Width = Math.Max(80, remainingUserW);
 
             pnlHeader.Invalidate();
+        }
+
+        private static bool MatchesTargetProcess(CredentialEntry entry, string procName, string windowTitle)
+        {
+            if (entry == null) return false;
+
+            // 1. Check AppFilter (e.g. "chrome.exe", "saplogon.exe", "GitHub")
+            if (!string.IsNullOrWhiteSpace(entry.AppFilter))
+            {
+                string filter = entry.AppFilter.Trim();
+
+                if (!string.IsNullOrEmpty(procName))
+                {
+                    string cleanProc = procName.ToLowerInvariant();
+                    string cleanProcNoExt = cleanProc.EndsWith(".exe") ? cleanProc.Substring(0, cleanProc.Length - 4) : cleanProc;
+
+                    string cleanFilter = filter.ToLowerInvariant();
+                    string cleanFilterNoExt = cleanFilter.EndsWith(".exe") ? cleanFilter.Substring(0, cleanFilter.Length - 4) : cleanFilter;
+
+                    if (cleanProc.Equals(cleanFilter, StringComparison.OrdinalIgnoreCase) ||
+                        cleanProcNoExt.Equals(cleanFilterNoExt, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+
+                    if (cleanProc.IndexOf(cleanFilterNoExt, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        cleanFilter.IndexOf(cleanProcNoExt, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return true;
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(windowTitle))
+                {
+                    if (windowTitle.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            // 2. Fallback: check if entry Title matches process name (e.g. Title "Chrome" with proc "chrome.exe")
+            if (!string.IsNullOrWhiteSpace(entry.Title) && !string.IsNullOrEmpty(procName))
+            {
+                string cleanProc = procName.ToLowerInvariant();
+                string cleanProcNoExt = cleanProc.EndsWith(".exe") ? cleanProc.Substring(0, cleanProc.Length - 4) : cleanProc;
+                string cleanTitle = entry.Title.Trim().ToLowerInvariant();
+
+                if (cleanProcNoExt.Equals(cleanTitle, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void LvResults_MouseClick(object sender, MouseEventArgs e)
