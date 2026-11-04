@@ -510,42 +510,13 @@ namespace Custode2.UI
         {
             if (entry == null) return false;
 
-            // 1. Check AppFilter (e.g. "chrome.exe", "saplogon.exe", "GitHub")
-            if (!string.IsNullOrWhiteSpace(entry.AppFilter))
+            // 1. Check AppFilter with exact .exe matching or LIKE mode
+            if (entry.MatchesProcess(procName, windowTitle))
             {
-                string filter = entry.AppFilter.Trim();
-
-                if (!string.IsNullOrEmpty(procName))
-                {
-                    string cleanProc = procName.ToLowerInvariant();
-                    string cleanProcNoExt = cleanProc.EndsWith(".exe") ? cleanProc.Substring(0, cleanProc.Length - 4) : cleanProc;
-
-                    string cleanFilter = filter.ToLowerInvariant();
-                    string cleanFilterNoExt = cleanFilter.EndsWith(".exe") ? cleanFilter.Substring(0, cleanFilter.Length - 4) : cleanFilter;
-
-                    if (cleanProc.Equals(cleanFilter, StringComparison.OrdinalIgnoreCase) ||
-                        cleanProcNoExt.Equals(cleanFilterNoExt, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-
-                    if (cleanProc.IndexOf(cleanFilterNoExt, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        cleanFilter.IndexOf(cleanProcNoExt, StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        return true;
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(windowTitle))
-                {
-                    if (windowTitle.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        return true;
-                    }
-                }
+                return true;
             }
 
-            // 2. Fallback: check if entry Title matches process name (e.g. Title "Chrome" with proc "chrome.exe")
+            // 2. Fallback: check if entry Title matches process name exactly (e.g. Title "Chrome" with proc "chrome.exe")
             if (!string.IsNullOrWhiteSpace(entry.Title) && !string.IsNullOrEmpty(procName))
             {
                 string cleanProc = procName.ToLowerInvariant();

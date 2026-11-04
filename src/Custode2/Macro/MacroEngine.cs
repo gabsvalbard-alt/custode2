@@ -291,36 +291,7 @@ namespace Custode2.Macro
         public static bool DoesProcessMatchFilter(string processName, string windowTitle, string appFilter)
         {
             if (string.IsNullOrEmpty(appFilter)) return true;
-            string f = appFilter.Trim();
-            if (string.IsNullOrEmpty(f)) return true;
-
-            if (!string.IsNullOrEmpty(processName))
-            {
-                string p = processName.Trim();
-                if (p.IndexOf(f, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    f.IndexOf(p, StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    return true;
-                }
-
-                string pWithoutExe = p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? p.Substring(0, p.Length - 4) : p;
-                string fWithoutExe = f.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? f.Substring(0, f.Length - 4) : f;
-                if (pWithoutExe.IndexOf(fWithoutExe, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    fWithoutExe.IndexOf(pWithoutExe, StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    return true;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(windowTitle))
-            {
-                if (windowTitle.IndexOf(f, StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return CredentialEntry.IsFilterMatch(appFilter, processName, windowTitle);
         }
 
         private static bool IsProcessBlacklisted(string processName, AppSettings settings)

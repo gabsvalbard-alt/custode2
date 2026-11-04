@@ -113,24 +113,41 @@ namespace Custode2.UI
             int left = 80;
             int maxContentWidth = 500;
 
+            var fontWarning = new Font("Segoe UI", 11f, FontStyle.Bold);
+            var fontDetails = new Font("Segoe UI", 9.5f, FontStyle.Regular);
+
+            Size warningSize = TextRenderer.MeasureText(
+                warningTitle,
+                fontWarning,
+                new Size(maxContentWidth, int.MaxValue),
+                TextFormatFlags.WordBreak | TextFormatFlags.TextBoxControl);
+
             lblWarning = new Label
             {
                 Text = warningTitle,
-                Font = new Font("Segoe UI", 11f, FontStyle.Bold),
+                Font = fontWarning,
                 ForeColor = warningColor,
                 Location = new Point(left, 20),
-                MaximumSize = new Size(maxContentWidth, 0),
-                AutoSize = true
+                Size = new Size(maxContentWidth, Math.Max(26, warningSize.Height + 4)),
+                AutoSize = false
             };
+
+            int detailsY = lblWarning.Bottom + 12;
+
+            Size detailsSize = TextRenderer.MeasureText(
+                detailBody,
+                fontDetails,
+                new Size(maxContentWidth, int.MaxValue),
+                TextFormatFlags.WordBreak | TextFormatFlags.TextBoxControl);
 
             lblDetails = new Label
             {
                 Text = detailBody,
-                Font = new Font("Segoe UI", 9.5f, FontStyle.Regular),
+                Font = fontDetails,
                 ForeColor = Color.FromArgb(40, 45, 50),
-                Location = new Point(left, lblWarning.Bottom + 12),
-                MaximumSize = new Size(maxContentWidth, 0),
-                AutoSize = true
+                Location = new Point(left, detailsY),
+                Size = new Size(maxContentWidth, detailsSize.Height + 12),
+                AutoSize = false
             };
 
             int nextY = lblDetails.Bottom + 16;
@@ -143,11 +160,15 @@ namespace Custode2.UI
                         ? "Fidati sempre di questa applicazione per le prossime volte"
                         : string.Format("Fidati sempre dell'applicazione '{0}'", processName),
                     Location = new Point(left, nextY),
-                    Size = new Size(maxContentWidth, 24),
+                    Size = new Size(maxContentWidth, 26),
                     Checked = false
                 };
                 this.Controls.Add(chkRememberProcess);
-                nextY = chkRememberProcess.Bottom + 18;
+                nextY = chkRememberProcess.Bottom + 20;
+            }
+            else
+            {
+                nextY += 8;
             }
 
             int btnWidth = dialogType == SecurityDialogType.NonEditableField ? 150 : 145;

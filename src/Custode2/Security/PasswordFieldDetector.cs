@@ -72,11 +72,9 @@ namespace Custode2.Security
 
             if (entry != null && !string.IsNullOrEmpty(entry.AppFilter))
             {
-                string filter = entry.AppFilter.Trim();
-                if ((!string.IsNullOrEmpty(processName) && processName.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0) ||
-                    (!string.IsNullOrEmpty(windowTitle) && windowTitle.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0))
+                if (entry.MatchesProcess(processName, windowTitle))
                 {
-                    details = string.Format("Corrispondenza con filtro credenziale: '{0}'", filter);
+                    details = string.Format("Corrispondenza con filtro credenziale: '{0}'", entry.AppFilter.Trim());
                     return PasswordDetectionResult.Whitelisted;
                 }
             }
@@ -251,8 +249,7 @@ namespace Custode2.Security
 
             if (entry != null && !string.IsNullOrEmpty(entry.AppFilter))
             {
-                string filter = entry.AppFilter.Trim();
-                if (!string.IsNullOrEmpty(processName) && processName.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0)
+                if (entry.MatchesProcess(processName, null))
                 {
                     return true;
                 }
