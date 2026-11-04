@@ -39,6 +39,19 @@ namespace Custode2.Macro
             {
                 try
                 {
+                    // 0. Pre-flight check: Application Blacklist (Blocks insertion regardless of credential settings)
+                    string processName = GetProcessName(targetHwnd);
+                    if (IsProcessBlacklisted(processName, settings))
+                    {
+                        MessageBox.Show(
+                            string.Format("L'inserimento delle credenziali per '{0}' è stato BLOCCATO!\n\nL'applicazione attiva '{1}' è inclusa nella Blacklist di sicurezza (es. chat/messaggistica).\nL'inserimento è stato interrotto per prevenire la diffusione accidentale delle credenziali.",
+                                entry.Title, string.IsNullOrEmpty(processName) ? "Sconosciuta" : processName),
+                            "Custode 2.0 - Applicazione in Blacklist",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Stop);
+                        return;
+                    }
+
                     // 1. Restore target window focus
                     if (targetHwnd != IntPtr.Zero)
                     {
@@ -162,6 +175,31 @@ namespace Custode2.Macro
             }
             catch { }
             return string.Empty;
+        }
+
+        private static bool IsProcessBlacklisted(string processName, AppSettings settings)
+        {
+            if (string.IsNullOrEmpty(processName) || settings == null || settings.BlacklistedProcesses == null)
+            {
+                return false;
+            }
+
+            string cleanProc = processName.Trim().ToLowerInvariant();
+            if (!cleanProc.EndsWith(".exe")) cleanProc += ".exe";
+
+            foreach (var bp in settings.BlacklistedProcesses)
+            {
+                if (string.IsNullOrEmpty(bp)) continue;
+                string cleanBp = bp.Trim().ToLowerInvariant();
+                if (!cleanBp.EndsWith(".exe")) cleanBp += ".exe";
+
+                if (cleanProc.Equals(cleanBp, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static List<MacroAction> ParseTemplate(string template, CredentialEntry entry)

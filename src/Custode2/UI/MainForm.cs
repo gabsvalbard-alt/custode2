@@ -40,13 +40,17 @@ namespace Custode2.UI
         private CheckBox chkRandomColor;
         private NumericUpDown numClipboardSeconds;
 
-        // Tab: Macro & Whitelist
+        // Tab: Macro & Whitelist / Blacklist
         private TextBox txtDefaultTemplate;
         private NumericUpDown numInterKeyDelay;
         private ListBox lbWhitelist;
         private TextBox txtNewWhitelistProcess;
         private Button btnAddProcess;
         private Button btnRemoveProcess;
+        private ListBox lbBlacklist;
+        private TextBox txtNewBlacklistProcess;
+        private Button btnAddBlacklistProcess;
+        private Button btnRemoveBlacklistProcess;
 
         // Tab: Sistema & Archivio
         private CheckBox chkStartWithWindows;
@@ -281,20 +285,20 @@ namespace Custode2.UI
             gbMacro.Controls.Add(lblDelayHint);
             pnl.Controls.Add(gbMacro);
 
-            // Group 2: Processi Autorizzati (Whitelist)
+            // Group 2: Processi Autorizzati (Whitelist) e Blacklist di Sicurezza
             y += 140;
-            var gbWhitelist = new GroupBox { Text = "Processi Autorizzati (Bypass Controllo Password)", Location = new Point(15, y), Size = new Size(880, 195) };
+            var gbWhitelist = new GroupBox { Text = "✅ Whitelist (Bypass Verifica Password)", Location = new Point(15, y), Size = new Size(435, 225) };
 
-            var lblWhitelistSub = new Label { Text = "I processi inseriti in whitelist non richiedono conferma se il campo password non espone le API di Windows (es. SAP GUI, RDP):", Location = new Point(15, 25), AutoSize = true, ForeColor = Color.DarkSlateGray };
-            lbWhitelist = new ListBox { Location = new Point(15, 55), Width = 320, Height = 120 };
+            var lblWhitelistSub = new Label { Text = "Bypass per app aziendali fidate (es. SAP GUI, RDP):", Location = new Point(15, 25), AutoSize = true, ForeColor = Color.DarkSlateGray, Font = new Font("Segoe UI", 8.5f) };
+            lbWhitelist = new ListBox { Location = new Point(15, 52), Width = 235, Height = 150 };
 
-            txtNewWhitelistProcess = new TextBox { Location = new Point(355, 55), Width = 230 };
-            var lblProcessHint = new Label { Text = "Es. saplogon.exe, sapgui.exe, mstsc.exe", Location = new Point(355, 82), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
+            txtNewWhitelistProcess = new TextBox { Location = new Point(260, 52), Width = 160 };
+            var lblProcessHint = new Label { Text = "Es. saplogon.exe, mstsc.exe", Location = new Point(260, 78), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8f) };
 
-            btnAddProcess = new Button { Text = "➕ Aggiungi Processo", Location = new Point(355, 110), Width = 155, Height = 30 };
+            btnAddProcess = new Button { Text = "➕ Aggiungi", Location = new Point(260, 105), Width = 160, Height = 30 };
             btnAddProcess.Click += (s, e) => AddWhitelistProcess();
 
-            btnRemoveProcess = new Button { Text = "🗑️ Rimuovi Selezionato", Location = new Point(355, 145), Width = 165, Height = 30 };
+            btnRemoveProcess = new Button { Text = "🗑️ Rimuovi", Location = new Point(260, 145), Width = 160, Height = 30 };
             btnRemoveProcess.Click += (s, e) => RemoveWhitelistProcess();
 
             gbWhitelist.Controls.Add(lblWhitelistSub);
@@ -305,8 +309,31 @@ namespace Custode2.UI
             gbWhitelist.Controls.Add(btnRemoveProcess);
             pnl.Controls.Add(gbWhitelist);
 
+            // Group 3: Blacklist (Blocco Totale Inserimento)
+            var gbBlacklist = new GroupBox { Text = "🚫 Blacklist (Blocco Totale Inserimento)", Location = new Point(460, y), Size = new Size(435, 225) };
+
+            var lblBlacklistSub = new Label { Text = "Inserimento sempre bloccato (es. Teams, Slack, Discord):", Location = new Point(15, 25), AutoSize = true, ForeColor = Color.FromArgb(180, 40, 20), Font = new Font("Segoe UI", 8.5f, FontStyle.Bold) };
+            lbBlacklist = new ListBox { Location = new Point(15, 52), Width = 235, Height = 150 };
+
+            txtNewBlacklistProcess = new TextBox { Location = new Point(260, 52), Width = 160 };
+            var lblBlacklistHint = new Label { Text = "Es. teams.exe, slack.exe", Location = new Point(260, 78), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8f) };
+
+            btnAddBlacklistProcess = new Button { Text = "➕ Aggiungi", Location = new Point(260, 105), Width = 160, Height = 30 };
+            btnAddBlacklistProcess.Click += (s, e) => AddBlacklistProcess();
+
+            btnRemoveBlacklistProcess = new Button { Text = "🗑️ Rimuovi", Location = new Point(260, 145), Width = 160, Height = 30 };
+            btnRemoveBlacklistProcess.Click += (s, e) => RemoveBlacklistProcess();
+
+            gbBlacklist.Controls.Add(lblBlacklistSub);
+            gbBlacklist.Controls.Add(lbBlacklist);
+            gbBlacklist.Controls.Add(txtNewBlacklistProcess);
+            gbBlacklist.Controls.Add(lblBlacklistHint);
+            gbBlacklist.Controls.Add(btnAddBlacklistProcess);
+            gbBlacklist.Controls.Add(btnRemoveBlacklistProcess);
+            pnl.Controls.Add(gbBlacklist);
+
             // Pulsante Salva Impostazioni
-            y += 215;
+            y += 245;
             var btnSave = CreateSaveButton(y);
             pnl.Controls.Add(btnSave);
 
@@ -522,6 +549,16 @@ namespace Custode2.UI
                     lbWhitelist.Items.Add(p);
                 }
             }
+
+            // Blacklist
+            lbBlacklist.Items.Clear();
+            if (s.BlacklistedProcesses != null)
+            {
+                foreach (var p in s.BlacklistedProcesses)
+                {
+                    lbBlacklist.Items.Add(p);
+                }
+            }
         }
 
         private void SaveSettingsFromUI()
@@ -571,6 +608,40 @@ namespace Custode2.UI
                 string proc = lbWhitelist.SelectedItem.ToString();
                 _vault.Settings.WhitelistedProcesses.Remove(proc);
                 lbWhitelist.Items.Remove(proc);
+                if (_onVaultChanged != null) _onVaultChanged();
+            }
+        }
+
+        private void AddBlacklistProcess()
+        {
+            string proc = txtNewBlacklistProcess.Text.Trim().ToLowerInvariant();
+            if (string.IsNullOrEmpty(proc)) return;
+            if (!proc.EndsWith(".exe")) proc += ".exe";
+
+            if (_vault.Settings.BlacklistedProcesses == null)
+            {
+                _vault.Settings.BlacklistedProcesses = new System.Collections.Generic.List<string>();
+            }
+
+            if (!_vault.Settings.BlacklistedProcesses.Contains(proc))
+            {
+                _vault.Settings.BlacklistedProcesses.Add(proc);
+                lbBlacklist.Items.Add(proc);
+                txtNewBlacklistProcess.Clear();
+                if (_onVaultChanged != null) _onVaultChanged();
+            }
+        }
+
+        private void RemoveBlacklistProcess()
+        {
+            if (lbBlacklist.SelectedItem != null)
+            {
+                string proc = lbBlacklist.SelectedItem.ToString();
+                if (_vault.Settings.BlacklistedProcesses != null)
+                {
+                    _vault.Settings.BlacklistedProcesses.Remove(proc);
+                }
+                lbBlacklist.Items.Remove(proc);
                 if (_onVaultChanged != null) _onVaultChanged();
             }
         }

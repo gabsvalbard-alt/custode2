@@ -12,6 +12,7 @@ namespace Custode2.Models
         public bool StartWithWindows { get; set; }
         public bool AutoRestorePreviousWindow { get; set; }
         public List<string> WhitelistedProcesses { get; set; }
+        public List<string> BlacklistedProcesses { get; set; }
 
         // Popup customization
         public int PickerOpacity { get; set; }
@@ -34,6 +35,16 @@ namespace Custode2.Models
                 "saplogon.exe",
                 "sapgui.exe",
                 "mstsc.exe"
+            };
+
+            BlacklistedProcesses = new List<string>
+            {
+                "teams.exe",
+                "ms-teams.exe",
+                "slack.exe",
+                "discord.exe",
+                "whatsapp.exe",
+                "telegram.exe"
             };
 
             PickerOpacity = 95;

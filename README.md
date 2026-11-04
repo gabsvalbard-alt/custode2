@@ -41,7 +41,10 @@ Ogni credenziale supporta una sequenza con token (valore predefinito: `$USER$<TA
 - **Interfaccia a Schede Tematiche**: Le impostazioni sono suddivise in 4 schede chiare per evitare scrolling verticale:
   - **🔑 Archivio Credenziali**: Gestione rapida, ricerca e prova inserimento.
   - **🎨 Aspetto & Popup**: Scorciatoia globale, posizione (cursore/centro), trasparenza, colori (anche casuale) e timer svuotamento appunti.
-  - **⚙️ Macro & Whitelist**: Template predefinito, ritardo tasti e gestione whitelist processi autorizzati.
+  - **⚙️ Macro & Whitelist / Blacklist**:
+    - **Parametri Macro**: Template predefinito e ritardo tasti.
+    - **Whitelist (Bypass verifica)**: Processi autorizzati (es. `saplogon.exe`, `mstsc.exe`).
+    - **Blacklist di Sicurezza (Blocco Totale)**: Processi in cui l'inserimento è tassativamente bloccato a prescindere da qualsiasi impostazione o deroga della singola credenziale (preconfigurato con `teams.exe`, `ms-teams.exe`, `slack.exe`, `discord.exe`, `whatsapp.exe`, `telegram.exe`, personalizzabile).
   - **💻 Sistema & Archivio**:
     - **Avvio Automatico**: Esecuzione all'avvio di Windows (configurato su HKCU, zero privilegi amministrativi richiesti).
     - **Notifica di Avvio**: Possibilità di attivare/disattivare il fumetto di notifica iniziale.
