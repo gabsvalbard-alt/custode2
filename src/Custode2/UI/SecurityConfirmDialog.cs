@@ -4,12 +4,19 @@ using System.Windows.Forms;
 
 namespace Custode2.UI
 {
+    public enum SecurityDialogType
+    {
+        PasswordSecurity,
+        NonEditableField,
+        ProcessMismatch
+    }
+
     public class SecurityConfirmDialog : Form
     {
         private Label lblWarning;
         private Label lblDetails;
         private CheckBox chkRememberProcess;
-        private Button btnSendAnyway;
+        private Button btnAction;
         private Button btnCancel;
 
         public bool RememberChoice
@@ -18,18 +25,74 @@ namespace Custode2.UI
         }
 
         public SecurityConfirmDialog(string entryTitle, string processName, string details, bool isEditableWarning = false)
+            : this(entryTitle, processName, details, isEditableWarning ? SecurityDialogType.NonEditableField : SecurityDialogType.PasswordSecurity)
         {
-            InitializeComponent(entryTitle, processName, details, isEditableWarning);
         }
 
-        private void InitializeComponent(string entryTitle, string processName, string details, bool isEditableWarning)
+        public SecurityConfirmDialog(string entryTitle, string processName, string details, SecurityDialogType dialogType, string expectedApp = null, string windowTitle = null)
         {
-            this.Text = isEditableWarning 
-                ? "Custode 2.0 - Nessun Campo Editabile Rilevato" 
-                : "Custode 2.0 - Controllo di Sicurezza Password";
+            InitializeComponent(entryTitle, processName, details, dialogType, expectedApp, windowTitle);
+        }
 
+        public static SecurityConfirmDialog CreateProcessMismatch(string entryTitle, string expectedApp, string actualProcess, string windowTitle)
+        {
+            return new SecurityConfirmDialog(entryTitle, actualProcess, null, SecurityDialogType.ProcessMismatch, expectedApp, windowTitle);
+        }
+
+        private void InitializeComponent(string entryTitle, string processName, string details, SecurityDialogType dialogType, string expectedApp, string windowTitle)
+        {
+            string formTitle;
+            string warningTitle;
+            Color warningColor;
+            string detailBody;
+            string actionText;
+            Color actionColor;
+
+            string detailMsg = string.IsNullOrEmpty(details) ? "" : string.Format("Dettagli: {0}\n", details);
+
+            switch (dialogType)
+            {
+                case SecurityDialogType.NonEditableField:
+                    formTitle = "Custode 2.0 - Nessun Campo Editabile Rilevato";
+                    warningTitle = string.Format("Attenzione: nessun campo editabile per '{0}'", entryTitle);
+                    warningColor = Color.FromArgb(190, 80, 0);
+                    detailBody = "Il cursore non sembra trovarsi in un campo in cui è possibile scrivere (es. sfondo pagina, pulsante o controllo non testuale).\n\n" +
+                                 detailMsg +
+                                 "Se prosegui, i tasti digitati potrebbero andare persi o attivare scorciatoie involontarie.\n\nVuoi forzare comunque l'inserimento?";
+                    actionText = "Forza Inserimento";
+                    actionColor = Color.FromArgb(220, 100, 20);
+                    break;
+
+                case SecurityDialogType.ProcessMismatch:
+                    formTitle = "Custode 2.0 - Processo Non Corrispondente";
+                    warningTitle = string.Format("Attenzione: applicazione diversa per '{0}'", entryTitle);
+                    warningColor = Color.FromArgb(190, 80, 0);
+                    detailBody = string.Format(
+                        "Questa credenziale è configurata specificamente per l'applicazione:\n🎯  {0}\n\n" +
+                        "La finestra attualmente attiva appartiene invece a:\n⚠️  {1}{2}\n\n" +
+                        "Vuoi procedere comunque con l'inserimento in questa finestra?",
+                        expectedApp,
+                        string.IsNullOrEmpty(processName) ? "Sconosciuta" : processName,
+                        string.IsNullOrEmpty(windowTitle) ? "" : " (\"" + windowTitle + "\")");
+                    actionText = "Procedi Comunque";
+                    actionColor = Color.FromArgb(220, 100, 20);
+                    break;
+
+                case SecurityDialogType.PasswordSecurity:
+                default:
+                    formTitle = "Custode 2.0 - Controllo di Sicurezza Password";
+                    warningTitle = string.Format("Attenzione: invio password per '{0}'", entryTitle);
+                    warningColor = Color.FromArgb(180, 40, 20);
+                    detailBody = "Il campo attivo nella finestra target non è stato identificato con certezza come campo password mascherato (es. potrebbe essere una chat o un campo testo in chiaro).\n\n" +
+                                 detailMsg +
+                                 "\nVuoi inviare comunque la password?";
+                    actionText = "Invia Comunque";
+                    actionColor = Color.FromArgb(220, 53, 69);
+                    break;
+            }
+
+            this.Text = formTitle;
             try { this.Icon = TrayAppContext.GetAppIcon(); } catch { }
-            this.Size = new Size(580, 290);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -47,60 +110,66 @@ namespace Custode2.UI
                 Size = new Size(48, 48)
             };
 
+            int left = 80;
+            int maxContentWidth = 500;
+
             lblWarning = new Label
             {
-                Text = isEditableWarning
-                    ? string.Format("Attenzione: nessun campo editabile per '{0}'", entryTitle)
-                    : string.Format("Attenzione: invio password per '{0}'", entryTitle),
+                Text = warningTitle,
                 Font = new Font("Segoe UI", 11f, FontStyle.Bold),
-                ForeColor = isEditableWarning ? Color.FromArgb(190, 80, 0) : Color.FromArgb(180, 40, 20),
-                Location = new Point(80, 20),
-                Size = new Size(460, 25)
+                ForeColor = warningColor,
+                Location = new Point(left, 20),
+                MaximumSize = new Size(maxContentWidth, 0),
+                AutoSize = true
             };
 
-            string detailMsg = string.IsNullOrEmpty(details) ? "" : string.Format("Dettagli: {0}\n", details);
             lblDetails = new Label
             {
-                Text = isEditableWarning
-                    ? "Il cursore non sembra trovarsi in un campo in cui è possibile scrivere (es. sfondo pagina, pulsante o controllo non testuale).\n\n" +
-                      detailMsg +
-                      "Se prosegui, i tasti digitati potrebbero andare persi o attivare scorciatoie involontarie.\nVuoi forzare comunque l'inserimento?"
-                    : "Il campo attivo nella finestra target non è stato identificato con certezza come campo password mascherato (es. potrebbe essere una chat o un campo testo in chiaro).\n\n" +
-                      detailMsg +
-                      "Vuoi inviare comunque la password?",
-                Location = new Point(80, 50),
-                Size = new Size(460, 95)
+                Text = detailBody,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Regular),
+                ForeColor = Color.FromArgb(40, 45, 50),
+                Location = new Point(left, lblWarning.Bottom + 12),
+                MaximumSize = new Size(maxContentWidth, 0),
+                AutoSize = true
             };
 
-            chkRememberProcess = new CheckBox
-            {
-                Text = string.IsNullOrEmpty(processName) 
-                    ? "Fidati sempre di questa applicazione per le prossime volte" 
-                    : string.Format("Fidati sempre dell'applicazione '{0}'", processName),
-                Location = new Point(80, 155),
-                Size = new Size(460, 24),
-                Checked = false
-            };
+            int nextY = lblDetails.Bottom + 16;
 
-            btnSendAnyway = new Button
+            if (dialogType != SecurityDialogType.ProcessMismatch)
             {
-                Text = isEditableWarning ? "Forza Inserimento" : "Invia Comunque",
+                chkRememberProcess = new CheckBox
+                {
+                    Text = string.IsNullOrEmpty(processName)
+                        ? "Fidati sempre di questa applicazione per le prossime volte"
+                        : string.Format("Fidati sempre dell'applicazione '{0}'", processName),
+                    Location = new Point(left, nextY),
+                    Size = new Size(maxContentWidth, 24),
+                    Checked = false
+                };
+                this.Controls.Add(chkRememberProcess);
+                nextY = chkRememberProcess.Bottom + 18;
+            }
+
+            int btnWidth = dialogType == SecurityDialogType.NonEditableField ? 150 : 145;
+            btnAction = new Button
+            {
+                Text = actionText,
                 DialogResult = DialogResult.OK,
-                Location = new Point(275, 195),
-                Size = new Size(145, 32),
-                BackColor = isEditableWarning ? Color.FromArgb(220, 100, 20) : Color.FromArgb(220, 53, 69),
+                Location = new Point(left + maxContentWidth - btnWidth - 115, nextY),
+                Size = new Size(btnWidth, 34),
+                BackColor = actionColor,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat
             };
-            btnSendAnyway.FlatAppearance.BorderSize = 0;
+            btnAction.FlatAppearance.BorderSize = 0;
 
             btnCancel = new Button
             {
                 Text = "Annulla",
                 DialogResult = DialogResult.Cancel,
-                Location = new Point(430, 195),
-                Size = new Size(110, 32),
-                BackColor = Color.FromArgb(230, 230, 230),
+                Location = new Point(left + maxContentWidth - 105, nextY),
+                Size = new Size(105, 34),
+                BackColor = Color.FromArgb(230, 233, 236),
                 FlatStyle = FlatStyle.Flat
             };
             btnCancel.FlatAppearance.BorderSize = 0;
@@ -108,12 +177,20 @@ namespace Custode2.UI
             this.Controls.Add(iconBox);
             this.Controls.Add(lblWarning);
             this.Controls.Add(lblDetails);
-            this.Controls.Add(chkRememberProcess);
-            this.Controls.Add(btnSendAnyway);
+            this.Controls.Add(btnAction);
             this.Controls.Add(btnCancel);
 
-            this.AcceptButton = btnSendAnyway;
+            // Focus on Cancel button by default for safety on warnings
+            this.AcceptButton = btnAction;
             this.CancelButton = btnCancel;
+
+            if (dialogType == SecurityDialogType.ProcessMismatch)
+            {
+                this.Shown += (s, e) => btnCancel.Focus();
+            }
+
+            // Dynamically calculate form client dimensions so nothing is ever clipped
+            this.ClientSize = new Size(left + maxContentWidth + 25, btnCancel.Bottom + 20);
         }
     }
 }

@@ -41,6 +41,7 @@ namespace Custode2.Macro
                 {
                     // 0. Pre-flight check: Application Blacklist (Blocks insertion regardless of credential settings)
                     string processName = GetProcessName(targetHwnd);
+                    string windowTitle = GetWindowTitle(targetHwnd);
                     if (IsProcessBlacklisted(processName, settings))
                     {
                         MessageBox.Show(
@@ -50,6 +51,34 @@ namespace Custode2.Macro
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Stop);
                         return;
+                    }
+
+                    // 0.5. Pre-flight check: Process Mismatch Warning
+                    // If credential has an AppFilter configured, but the active process is different:
+                    if (!string.IsNullOrEmpty(entry.AppFilter) && !DoesProcessMatchFilter(processName, windowTitle, entry.AppFilter))
+                    {
+                        bool proceedAnyway = false;
+                        using (var form = SecurityConfirmDialog.CreateProcessMismatch(entry.Title, entry.AppFilter, processName, windowTitle))
+                        {
+                            if (form.ShowDialog() == DialogResult.OK)
+                            {
+                                proceedAnyway = true;
+                            }
+                        }
+
+                        if (!proceedAnyway)
+                        {
+                            // User aborted due to process mismatch
+                            return;
+                        }
+
+                        // Refocus target window after dialog closes
+                        if (targetHwnd != IntPtr.Zero)
+                        {
+                            NativeMethods.SetForegroundWindow(targetHwnd);
+                            NativeMethods.BringWindowToTop(targetHwnd);
+                            Thread.Sleep(80);
+                        }
                     }
 
                     // 1. Restore target window focus
@@ -244,6 +273,54 @@ namespace Custode2.Macro
             }
             catch { }
             return string.Empty;
+        }
+
+        private static string GetWindowTitle(IntPtr hWnd)
+        {
+            if (hWnd == IntPtr.Zero) return string.Empty;
+            try
+            {
+                var sb = new System.Text.StringBuilder(256);
+                NativeMethods.GetWindowText(hWnd, sb, sb.Capacity);
+                return sb.ToString();
+            }
+            catch { }
+            return string.Empty;
+        }
+
+        public static bool DoesProcessMatchFilter(string processName, string windowTitle, string appFilter)
+        {
+            if (string.IsNullOrEmpty(appFilter)) return true;
+            string f = appFilter.Trim();
+            if (string.IsNullOrEmpty(f)) return true;
+
+            if (!string.IsNullOrEmpty(processName))
+            {
+                string p = processName.Trim();
+                if (p.IndexOf(f, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    f.IndexOf(p, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+
+                string pWithoutExe = p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? p.Substring(0, p.Length - 4) : p;
+                string fWithoutExe = f.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? f.Substring(0, f.Length - 4) : f;
+                if (pWithoutExe.IndexOf(fWithoutExe, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    fWithoutExe.IndexOf(pWithoutExe, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(windowTitle))
+            {
+                if (windowTitle.IndexOf(f, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool IsProcessBlacklisted(string processName, AppSettings settings)
