@@ -180,6 +180,42 @@ namespace Custode2.Security
             return PasswordDetectionResult.Uncertain;
         }
 
+        private static bool IsKnownEditableClassName(string className)
+        {
+            if (string.IsNullOrEmpty(className)) return false;
+            string c = className.ToLowerInvariant();
+            return c.Contains("edit") ||
+                   c.Contains("richedit") ||
+                   c.Contains("textbox") ||
+                   c.Contains("scintilla") ||
+                   c.Contains("console") ||
+                   c.Contains("terminal") ||
+                   c.Contains("mintty") ||
+                   c.Contains("chrome_renderwidgethost") ||
+                   c.Contains("webview") ||
+                   c.Contains("mozilla") ||
+                   c.Contains("gecko") ||
+                   c.Contains("sunawt") ||
+                   c.Contains("swt_window") ||
+                   c.Contains("document") ||
+                   c.Contains("content");
+        }
+
+        private static bool IsKnownNonEditableClassName(string className)
+        {
+            if (string.IsNullOrEmpty(className)) return false;
+            string c = className.ToLowerInvariant();
+            return c.Contains("button") ||
+                   c.Contains("static") ||
+                   c.Contains("syslistview") ||
+                   c.Contains("systreeview") ||
+                   c.Contains("sysheader") ||
+                   c.Contains("scrollbar") ||
+                   c.Contains("msctls_progress") ||
+                   c.Contains("msctls_trackbar") ||
+                   c.Contains("toolbarwindow");
+        }
+
         public static bool IsTargetEditable(IntPtr targetHwnd, CredentialEntry entry, AppSettings settings, out string reason)
         {
             reason = string.Empty;
@@ -213,6 +249,27 @@ namespace Custode2.Security
                 }
             }
 
+            if (entry != null && !string.IsNullOrEmpty(entry.AppFilter))
+            {
+                string filter = entry.AppFilter.Trim();
+                if (!string.IsNullOrEmpty(processName) && processName.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            // Pre-check: Target window disabled
+            try
+            {
+                long targetStyle = NativeMethods.GetWindowLong(targetHwnd, NativeMethods.GWL_STYLE).ToInt64();
+                if ((targetStyle & NativeMethods.WS_DISABLED) != 0)
+                {
+                    reason = "La finestra di destinazione è disabilitata.";
+                    return false;
+                }
+            }
+            catch { }
+
             // 2. UI Automation inspection
             try
             {
@@ -220,6 +277,9 @@ namespace Custode2.Security
                 if (focused != null)
                 {
                     var ct = focused.Current.ControlType;
+                    string className = focused.Current.ClassName ?? string.Empty;
+
+                    // A. Immediate pass: Standard edit controls
                     if (ct == ControlType.Edit || ct == ControlType.ComboBox)
                     {
                         object readOnlyObj = focused.GetCurrentPropertyValue(ValuePattern.IsReadOnlyProperty, true);
@@ -231,13 +291,29 @@ namespace Custode2.Security
                         return true;
                     }
 
+                    // B. Immediate pass: Known editable classes (Scintilla, RichEdit, Chrome, etc.)
+                    if (IsKnownEditableClassName(className))
+                    {
+                        return true;
+                    }
+
+                    // C. Immediate pass: Documents (Word, web pages, rich text)
                     if (ct == ControlType.Document)
                     {
                         object readOnlyObj = focused.GetCurrentPropertyValue(ValuePattern.IsReadOnlyProperty, true);
-                        if (readOnlyObj is bool && !(bool)readOnlyObj)
+                        if (readOnlyObj is bool && (bool)readOnlyObj)
                         {
-                            return true;
+                            reason = "Il documento selezionato è in modalità sola lettura.";
+                            return false;
                         }
+                        return true;
+                    }
+
+                    // D. Patterns support (TextPattern / ValuePattern)
+                    object textPatternObj;
+                    if (focused.TryGetCurrentPattern(TextPattern.Pattern, out textPatternObj))
+                    {
+                        return true;
                     }
 
                     object valPatternObj;
@@ -250,21 +326,41 @@ namespace Custode2.Security
                         }
                     }
 
+                    // E. Genuine non-editable elements (buttons, sliders, scrollbars, menus, etc.)
                     if (ct == ControlType.Button || ct == ControlType.ScrollBar || ct == ControlType.Header ||
                         ct == ControlType.Image || ct == ControlType.MenuBar || ct == ControlType.MenuItem ||
                         ct == ControlType.ProgressBar || ct == ControlType.Slider || ct == ControlType.Separator ||
                         ct == ControlType.TabItem || ct == ControlType.ToolTip || ct == ControlType.TreeItem ||
-                        ct == ControlType.Text || ct == ControlType.Pane || ct == ControlType.Window ||
-                        ct == ControlType.Group || ct == ControlType.List || ct == ControlType.Table)
+                        ct == ControlType.Hyperlink || ct == ControlType.StatusBar)
                     {
                         reason = string.Format("L'elemento attualmente attivo non è un campo di testo (rilevato: {0}).", ct.LocalizedControlType);
                         return false;
+                    }
+
+                    // F. Static text labels without keyboard focus
+                    if (ct == ControlType.Text)
+                    {
+                        if (!focused.Current.IsKeyboardFocusable && !focused.Current.HasKeyboardFocus)
+                        {
+                            reason = "L'elemento attivo è un'etichetta di testo non modificabile.";
+                            return false;
+                        }
+                    }
+
+                    // G. Panes / Custom / Window / Group with keyboard focus
+                    // In Windows/WPF/Scintilla, a pane/canvas only receives keyboard focus if it accepts keystrokes
+                    if (ct == ControlType.Pane || ct == ControlType.Custom || ct == ControlType.Window || ct == ControlType.Group)
+                    {
+                        if (focused.Current.HasKeyboardFocus || focused.Current.IsKeyboardFocusable)
+                        {
+                            return true;
+                        }
                     }
                 }
             }
             catch { }
 
-            // 3. Win32 Level inspection
+            // 3. Win32 Level inspection (Fallback / verification)
             try
             {
                 uint dummyPid;
@@ -274,7 +370,7 @@ namespace Custode2.Security
                 IntPtr hFocus = IntPtr.Zero;
                 bool attached = false;
 
-                if (targetThreadId != currentThreadId)
+                if (targetThreadId != 0 && targetThreadId != currentThreadId)
                 {
                     attached = NativeMethods.AttachThreadInput(currentThreadId, targetThreadId, true);
                 }
@@ -309,29 +405,16 @@ namespace Custode2.Security
                     NativeMethods.GetClassName(hFocus, sbClass, sbClass.Capacity);
                     string className = sbClass.ToString();
 
-                    if (className.IndexOf("Edit", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        className.IndexOf("RichEdit", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        className.IndexOf("TextBox", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        className.IndexOf("Scintilla", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        className.IndexOf("Console", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        className.IndexOf("Terminal", StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (IsKnownEditableClassName(className))
                     {
                         return true;
                     }
 
-                    if (className.IndexOf("Button", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        className.IndexOf("Static", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        className.IndexOf("SysListView", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        className.IndexOf("SysTreeView", StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (IsKnownNonEditableClassName(className))
                     {
                         reason = string.Format("L'elemento selezionato non è editabile (classe: {0}).", className);
                         return false;
                     }
-                }
-                else
-                {
-                    reason = "Nessun cursore o campo di testo attivo nella finestra target.";
-                    return false;
                 }
             }
             catch { }
