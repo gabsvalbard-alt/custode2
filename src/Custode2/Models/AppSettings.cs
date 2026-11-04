@@ -19,6 +19,7 @@ namespace Custode2.Models
         public bool PickerRandomColor { get; set; }
         public string PickerPositionMode { get; set; }
         public int ClipboardClearSeconds { get; set; }
+        public bool ShowStartupNotification { get; set; }
 
         public AppSettings()
         {
@@ -27,6 +28,7 @@ namespace Custode2.Models
             InterKeyDelayMs = 15;
             StartWithWindows = false;
             AutoRestorePreviousWindow = true;
+            ShowStartupNotification = true;
             WhitelistedProcesses = new List<string>
             {
                 "saplogon.exe",

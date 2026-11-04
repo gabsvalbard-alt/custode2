@@ -37,13 +37,16 @@ Ogni credenziale supporta una sequenza con token (valore predefinito: `$USER$<TA
 - `$DELAY(ms)$`: Pausa in millisecondi (es. `$DELAY(500)$` per form web a più passaggi o connessioni lente).
 - Simulazione tramite API nativa Win32 `SendInput` con supporto caratteri Unicode (evita qualsiasi problema di layout o caratteri speciali).
 
-### 4. Controllo Sicurezza & Supporto SAP GUI / App Legacy
-Prima dell'emissione del token `$PASS$`, Custode 2.0 effettua un controllo multilivello sul campo attivo della finestra target:
-1. **Windows UI Automation**: Verifica `AutomationElement.IsPasswordProperty` (ottimale per browser come Chrome, Edge, Firefox e app moderne).
-2. **Win32 Control Inspection**: Verifica stili di finestra `ES_PASSWORD` e messaggio `EM_GETPASSWORDCHAR` (per controlli nativi Edit Win32).
-3. **Whitelist & Euristica Processi (es. SAP GUI)**:
-   - Su applicazioni aziendali come SAP GUI (`saplogon.exe`, `sapgui.exe`) o Desktop Remoto (`mstsc.exe`), dove le API di Windows non espongono la proprietà `IsPassword`, l'applicazione può essere autorizzata.
-4. **Popup di Conferma Rapido**: Se il campo attivo non è sicuramente mascherato, compare un avviso con la richiesta di conferma e la casella *"Fidati sempre di questa applicazione"* per non richiederlo più.
+### 4. Organizzazione Impostazioni & Funzioni di Sistema
+- **Interfaccia a Schede Tematiche**: Le impostazioni sono suddivise in 4 schede chiare per evitare scrolling verticale:
+  - **🔑 Archivio Credenziali**: Gestione rapida, ricerca e prova inserimento.
+  - **🎨 Aspetto & Popup**: Scorciatoia globale, posizione (cursore/centro), trasparenza, colori (anche casuale) e timer svuotamento appunti.
+  - **⚙️ Macro & Whitelist**: Template predefinito, ritardo tasti e gestione whitelist processi autorizzati.
+  - **💻 Sistema & Archivio**:
+    - **Avvio Automatico**: Esecuzione all'avvio di Windows (configurato su HKCU, zero privilegi amministrativi richiesti).
+    - **Notifica di Avvio**: Possibilità di attivare/disattivare il fumetto di notifica iniziale.
+    - **Backup Vault**: Accesso diretto alla cartella del vault e creazione backup al volo.
+    - **Termina Processo**: Pulsante dedicato per arrestare e chiudere completamente l'applicazione e la relativa icona nella Tray.
 
 ---
 

@@ -15,8 +15,11 @@ namespace Custode2.UI
         private readonly VaultData _vault;
         private readonly Action _onVaultChanged;
         private readonly Action _onHotkeysReloadRequested;
+        private readonly Action _onExitRequested;
 
         private TabControl tabControl;
+
+        // Credentials Tab
         private ListView lvCredentials;
         private TextBox txtSearch;
         private Button btnAdd;
@@ -25,32 +28,40 @@ namespace Custode2.UI
         private Button btnDuplicate;
         private Button btnTestMacro;
 
-        // Settings tab controls
+        // Tab: Aspetto & Popup
         private TextBox txtPickerHotkey;
-        private TextBox txtDefaultTemplate;
-        private NumericUpDown numInterKeyDelay;
+        private RadioButton rbPosCursor;
+        private RadioButton rbPosCenter;
         private TrackBar tbOpacity;
         private Label lblOpacityVal;
         private Panel pnlColorPreview;
         private Button btnPickColor;
         private Button btnResetColor;
         private CheckBox chkRandomColor;
-        private RadioButton rbPosCursor;
-        private RadioButton rbPosCenter;
         private NumericUpDown numClipboardSeconds;
+
+        // Tab: Macro & Whitelist
+        private TextBox txtDefaultTemplate;
+        private NumericUpDown numInterKeyDelay;
         private ListBox lbWhitelist;
         private TextBox txtNewWhitelistProcess;
         private Button btnAddProcess;
         private Button btnRemoveProcess;
+
+        // Tab: Sistema & Archivio
+        private CheckBox chkStartWithWindows;
+        private CheckBox chkStartupNotification;
         private TextBox txtVaultPath;
         private Button btnOpenFolder;
         private Button btnBackupNow;
+        private Button btnTerminateProcess;
 
-        public MainForm(VaultData vault, Action onVaultChanged, Action onHotkeysReloadRequested)
+        public MainForm(VaultData vault, Action onVaultChanged, Action onHotkeysReloadRequested, Action onExitRequested = null)
         {
             _vault = vault ?? new VaultData();
             _onVaultChanged = onVaultChanged;
             _onHotkeysReloadRequested = onHotkeysReloadRequested;
+            _onExitRequested = onExitRequested;
 
             InitializeComponent();
             RefreshCredentialsList();
@@ -67,14 +78,21 @@ namespace Custode2.UI
             this.BackColor = Color.FromArgb(245, 246, 248);
 
             tabControl = new TabControl { Dock = DockStyle.Fill };
-            var tabCreds = new TabPage("Archivio Credenziali");
-            var tabSettings = new TabPage("Impostazioni & Sicurezza");
+
+            var tabCreds = new TabPage("🔑 Archivio Credenziali");
+            var tabAppearance = new TabPage("🎨 Aspetto & Popup");
+            var tabMacro = new TabPage("⚙️ Macro & Whitelist");
+            var tabSystem = new TabPage("💻 Sistema & Archivio");
 
             BuildCredentialsTab(tabCreds);
-            BuildSettingsTab(tabSettings);
+            BuildAppearanceTab(tabAppearance);
+            BuildMacroTab(tabMacro);
+            BuildSystemTab(tabSystem);
 
             tabControl.TabPages.Add(tabCreds);
-            tabControl.TabPages.Add(tabSettings);
+            tabControl.TabPages.Add(tabAppearance);
+            tabControl.TabPages.Add(tabMacro);
+            tabControl.TabPages.Add(tabSystem);
 
             this.Controls.Add(tabControl);
 
@@ -147,51 +165,42 @@ namespace Custode2.UI
             tab.Controls.Add(pnlBottom);
         }
 
-        private void BuildSettingsTab(TabPage tab)
+        private void BuildAppearanceTab(TabPage tab)
         {
             var pnl = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(20) };
-            int y = 20;
+            int y = 15;
 
-            // Global Picker Hotkey
-            var lblPicker = new Label { Text = "Scorciatoia Quick Picker (Barra Ricerca Rapida):", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
-            txtPickerHotkey = new TextBox { Location = new Point(20, y + 25), Width = 280 };
-            var lblPickerHint = new Label { Text = "Es. Ctrl+Alt+Space, Win+Shift+C, Ctrl+Alt+C", Location = new Point(310, y + 27), AutoSize = true, ForeColor = Color.Gray };
-            pnl.Controls.Add(lblPicker);
-            pnl.Controls.Add(txtPickerHotkey);
-            pnl.Controls.Add(lblPickerHint);
+            // Group 1: Scorciatoia Globale
+            var gbHotkey = new GroupBox { Text = "Scorciatoia Globale di Richiamo", Location = new Point(15, y), Size = new Size(880, 80) };
+            var lblPicker = new Label { Text = "Combinazione di tasti:", Location = new Point(15, 30), AutoSize = true };
+            txtPickerHotkey = new TextBox { Location = new Point(165, 27), Width = 260 };
+            var lblPickerHint = new Label { Text = "Es. Ctrl+Alt+Space, Win+Shift+C, Ctrl+Alt+C", Location = new Point(440, 30), AutoSize = true, ForeColor = Color.Gray };
+            gbHotkey.Controls.Add(lblPicker);
+            gbHotkey.Controls.Add(txtPickerHotkey);
+            gbHotkey.Controls.Add(lblPickerHint);
+            pnl.Controls.Add(gbHotkey);
 
-            // Default Template
-            y += 70;
-            var lblDefTemplate = new Label { Text = "Template Macro Predefinito per nuove voci:", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
-            txtDefaultTemplate = new TextBox { Location = new Point(20, y + 25), Width = 380 };
-            pnl.Controls.Add(lblDefTemplate);
-            pnl.Controls.Add(txtDefaultTemplate);
+            // Group 2: Posizione di Comparsa
+            y += 95;
+            var gbPos = new GroupBox { Text = "Posizione di Comparsa Popup", Location = new Point(15, y), Size = new Size(880, 75) };
+            rbPosCursor = new RadioButton { Text = "Posizione cursore del mouse (predefinita)", Location = new Point(20, 30), AutoSize = true, Checked = true };
+            rbPosCenter = new RadioButton { Text = "Centro dello schermo", Location = new Point(340, 30), AutoSize = true };
+            gbPos.Controls.Add(rbPosCursor);
+            gbPos.Controls.Add(rbPosCenter);
+            pnl.Controls.Add(gbPos);
 
-            // Inter-Key Delay
-            y += 70;
-            var lblDelay = new Label { Text = "Ritardo tra caratteri (millisecondi):", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
-            numInterKeyDelay = new NumericUpDown { Location = new Point(20, y + 25), Width = 100, Minimum = 0, Maximum = 200, Value = 15 };
-            pnl.Controls.Add(lblDelay);
-            pnl.Controls.Add(numInterKeyDelay);
+            // Group 3: Personalizzazione Visiva (Trasparenza e Colore)
+            y += 90;
+            var gbStyle = new GroupBox { Text = "Aspetto Grafico & Trasparenza", Location = new Point(15, y), Size = new Size(880, 130) };
 
-            // Quick Picker Popup Customization (Opacity & Color)
-            y += 70;
-            var lblPopupTitle = new Label { Text = "Personalizzazione Popup Quick Picker:", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
-            pnl.Controls.Add(lblPopupTitle);
-
-            y += 28;
-            var lblOpacity = new Label { Text = "Livello trasparenza:", Location = new Point(20, y + 4), AutoSize = true };
-            tbOpacity = new TrackBar { Location = new Point(160, y), Width = 220, Minimum = 30, Maximum = 100, TickFrequency = 10, SmallChange = 5, LargeChange = 10 };
-            lblOpacityVal = new Label { Location = new Point(390, y + 4), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
+            var lblOpacity = new Label { Text = "Livello trasparenza:", Location = new Point(15, 30), AutoSize = true };
+            tbOpacity = new TrackBar { Location = new Point(165, 25), Width = 220, Minimum = 30, Maximum = 100, TickFrequency = 10, SmallChange = 5, LargeChange = 10 };
+            lblOpacityVal = new Label { Location = new Point(395, 30), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
             tbOpacity.ValueChanged += (s, e) => { lblOpacityVal.Text = tbOpacity.Value + "%"; };
-            pnl.Controls.Add(lblOpacity);
-            pnl.Controls.Add(tbOpacity);
-            pnl.Controls.Add(lblOpacityVal);
 
-            y += 45;
-            var lblBgColor = new Label { Text = "Colore di sfondo:", Location = new Point(20, y + 4), AutoSize = true };
-            pnlColorPreview = new Panel { Location = new Point(160, y + 2), Size = new Size(32, 26), BorderStyle = BorderStyle.FixedSingle, BackColor = Color.FromArgb(32, 33, 36) };
-            btnPickColor = new Button { Text = "🎨 Scegli Colore...", Location = new Point(200, y + 2), Width = 135, Height = 28 };
+            var lblBgColor = new Label { Text = "Colore di sfondo:", Location = new Point(15, 75), AutoSize = true };
+            pnlColorPreview = new Panel { Location = new Point(165, 72), Size = new Size(32, 26), BorderStyle = BorderStyle.FixedSingle, BackColor = Color.FromArgb(32, 33, 36) };
+            btnPickColor = new Button { Text = "🎨 Scegli Colore...", Location = new Point(205, 72), Width = 130, Height = 28 };
             btnPickColor.Click += (s, e) =>
             {
                 using (var cd = new ColorDialog())
@@ -204,10 +213,10 @@ namespace Custode2.UI
                 }
             };
 
-            btnResetColor = new Button { Text = "Ripristina Scuro", Location = new Point(345, y + 2), Width = 115, Height = 28 };
+            btnResetColor = new Button { Text = "Ripristina Scuro", Location = new Point(345, 72), Width = 115, Height = 28 };
             btnResetColor.Click += (s, e) => { pnlColorPreview.BackColor = Color.FromArgb(32, 33, 36); };
 
-            chkRandomColor = new CheckBox { Text = "🎲 Usa colore casuale ad ogni apertura", Location = new Point(475, y + 6), AutoSize = true };
+            chkRandomColor = new CheckBox { Text = "🎲 Usa colore casuale ad ogni apertura", Location = new Point(475, 76), AutoSize = true };
             chkRandomColor.CheckedChanged += (s, e) =>
             {
                 pnlColorPreview.Enabled = !chkRandomColor.Checked;
@@ -215,62 +224,121 @@ namespace Custode2.UI
                 btnResetColor.Enabled = !chkRandomColor.Checked;
             };
 
-            pnl.Controls.Add(lblBgColor);
-            pnl.Controls.Add(pnlColorPreview);
-            pnl.Controls.Add(btnPickColor);
-            pnl.Controls.Add(btnResetColor);
-            pnl.Controls.Add(chkRandomColor);
+            gbStyle.Controls.Add(lblOpacity);
+            gbStyle.Controls.Add(tbOpacity);
+            gbStyle.Controls.Add(lblOpacityVal);
+            gbStyle.Controls.Add(lblBgColor);
+            gbStyle.Controls.Add(pnlColorPreview);
+            gbStyle.Controls.Add(btnPickColor);
+            gbStyle.Controls.Add(btnResetColor);
+            gbStyle.Controls.Add(chkRandomColor);
+            pnl.Controls.Add(gbStyle);
 
-            // Position mode: Cursor (default) or Center of screen
-            y += 42;
-            var lblPosTitle = new Label { Text = "Posizione di comparsa:", Location = new Point(20, y + 2), AutoSize = true };
-            rbPosCursor = new RadioButton { Text = "Posizione cursore del mouse (predefinita)", Location = new Point(160, y), AutoSize = true, Checked = true };
-            rbPosCenter = new RadioButton { Text = "Centro dello schermo", Location = new Point(440, y), AutoSize = true };
-            pnl.Controls.Add(lblPosTitle);
-            pnl.Controls.Add(rbPosCursor);
-            pnl.Controls.Add(rbPosCenter);
+            // Group 4: Sicurezza Clipboard
+            y += 145;
+            var gbClipboard = new GroupBox { Text = "Sicurezza Appunti (Copia Password)", Location = new Point(15, y), Size = new Size(880, 75) };
+            var lblClipboard = new Label { Text = "Svuota appunti dopo:", Location = new Point(15, 28), AutoSize = true };
+            numClipboardSeconds = new NumericUpDown { Location = new Point(165, 26), Width = 70, Minimum = 3, Maximum = 120, Value = 15 };
+            var lblSec = new Label { Text = "secondi", Location = new Point(245, 28), AutoSize = true };
+            var lblClipboardHint = new Label { Text = "(cancella automaticamente la password dalla memoria per evitare accessi indesiderati)", Location = new Point(315, 28), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
 
-            // Clipboard clear seconds
-            y += 38;
-            var lblClipboard = new Label { Text = "Svuota appunti dopo (secondi):", Location = new Point(20, y + 2), AutoSize = true };
-            numClipboardSeconds = new NumericUpDown { Location = new Point(230, y), Width = 80, Minimum = 3, Maximum = 120, Value = 15 };
-            var lblClipboardHint = new Label { Text = "Rimuove la password dagli appunti (predefinito: 15s)", Location = new Point(325, y + 2), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
-            pnl.Controls.Add(lblClipboard);
-            pnl.Controls.Add(numClipboardSeconds);
-            pnl.Controls.Add(lblClipboardHint);
+            gbClipboard.Controls.Add(lblClipboard);
+            gbClipboard.Controls.Add(numClipboardSeconds);
+            gbClipboard.Controls.Add(lblSec);
+            gbClipboard.Controls.Add(lblClipboardHint);
+            pnl.Controls.Add(gbClipboard);
 
-            // Whitelisted Processes (SAP GUI, etc.)
-            y += 65;
-            var lblWhitelistTitle = new Label { Text = "Processi Autorizzati (Bypass automatico controllo password):", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
-            var lblWhitelistSub = new Label { Text = "Ideale per software aziendali come SAP GUI (saplogon.exe, sapgui.exe) o RDP (mstsc.exe)", Location = new Point(20, y + 22), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
-            lbWhitelist = new ListBox { Location = new Point(20, y + 45), Width = 300, Height = 105 };
+            // Pulsante Salva Impostazioni in fondo alla scheda
+            y += 90;
+            var btnSave = CreateSaveButton(y);
+            pnl.Controls.Add(btnSave);
 
-            txtNewWhitelistProcess = new TextBox { Location = new Point(335, y + 45), Width = 220 };
-            btnAddProcess = new Button { Text = "Aggiungi Processo", Location = new Point(335, y + 78), Width = 150, Height = 28 };
+            tab.Controls.Add(pnl);
+        }
+
+        private void BuildMacroTab(TabPage tab)
+        {
+            var pnl = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(20) };
+            int y = 15;
+
+            // Group 1: Parametri Macro Predefiniti
+            var gbMacro = new GroupBox { Text = "Parametri di Digitazione Macro", Location = new Point(15, y), Size = new Size(880, 125) };
+
+            var lblDefTemplate = new Label { Text = "Template predefinito nuove voci:", Location = new Point(15, 30), AutoSize = true };
+            txtDefaultTemplate = new TextBox { Location = new Point(240, 27), Width = 360 };
+            var lblTmplHint = new Label { Text = "Token supportati: $USER$, <TAB>, $PASS$, <ENTER>, $DELAY(ms)$", Location = new Point(240, 52), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
+
+            var lblDelay = new Label { Text = "Ritardo tra caratteri (ms):", Location = new Point(15, 80), AutoSize = true };
+            numInterKeyDelay = new NumericUpDown { Location = new Point(240, 78), Width = 80, Minimum = 0, Maximum = 200, Value = 15 };
+            var lblDelayHint = new Label { Text = "(predefinito: 15 ms, garantisce ricezione corretta su form web e desktop)", Location = new Point(335, 80), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
+
+            gbMacro.Controls.Add(lblDefTemplate);
+            gbMacro.Controls.Add(txtDefaultTemplate);
+            gbMacro.Controls.Add(lblTmplHint);
+            gbMacro.Controls.Add(lblDelay);
+            gbMacro.Controls.Add(numInterKeyDelay);
+            gbMacro.Controls.Add(lblDelayHint);
+            pnl.Controls.Add(gbMacro);
+
+            // Group 2: Processi Autorizzati (Whitelist)
+            y += 140;
+            var gbWhitelist = new GroupBox { Text = "Processi Autorizzati (Bypass Controllo Password)", Location = new Point(15, y), Size = new Size(880, 195) };
+
+            var lblWhitelistSub = new Label { Text = "I processi inseriti in whitelist non richiedono conferma se il campo password non espone le API di Windows (es. SAP GUI, RDP):", Location = new Point(15, 25), AutoSize = true, ForeColor = Color.DarkSlateGray };
+            lbWhitelist = new ListBox { Location = new Point(15, 55), Width = 320, Height = 120 };
+
+            txtNewWhitelistProcess = new TextBox { Location = new Point(355, 55), Width = 230 };
+            var lblProcessHint = new Label { Text = "Es. saplogon.exe, sapgui.exe, mstsc.exe", Location = new Point(355, 82), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
+
+            btnAddProcess = new Button { Text = "➕ Aggiungi Processo", Location = new Point(355, 110), Width = 155, Height = 30 };
             btnAddProcess.Click += (s, e) => AddWhitelistProcess();
 
-            btnRemoveProcess = new Button { Text = "Rimuovi Selezionato", Location = new Point(335, y + 115), Width = 160, Height = 28 };
+            btnRemoveProcess = new Button { Text = "🗑️ Rimuovi Selezionato", Location = new Point(355, 145), Width = 165, Height = 30 };
             btnRemoveProcess.Click += (s, e) => RemoveWhitelistProcess();
 
-            pnl.Controls.Add(lblWhitelistTitle);
-            pnl.Controls.Add(lblWhitelistSub);
-            pnl.Controls.Add(lbWhitelist);
-            pnl.Controls.Add(txtNewWhitelistProcess);
-            pnl.Controls.Add(btnAddProcess);
-            pnl.Controls.Add(btnRemoveProcess);
+            gbWhitelist.Controls.Add(lblWhitelistSub);
+            gbWhitelist.Controls.Add(lbWhitelist);
+            gbWhitelist.Controls.Add(txtNewWhitelistProcess);
+            gbWhitelist.Controls.Add(lblProcessHint);
+            gbWhitelist.Controls.Add(btnAddProcess);
+            gbWhitelist.Controls.Add(btnRemoveProcess);
+            pnl.Controls.Add(gbWhitelist);
 
-            // Vault file location & Backup
-            y += 175;
-            var lblVaultTitle = new Label { Text = "Archivio Crittografato (DPAPI):", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
-            txtVaultPath = new TextBox { ReadOnly = true, Text = DpapiStorage.GetVaultFilePath(), Location = new Point(20, y + 25), Width = 680, BackColor = Color.White };
-            btnOpenFolder = new Button { Text = "📁 Apri Cartella Vault", Location = new Point(20, y + 55), Width = 170, Height = 30 };
+            // Pulsante Salva Impostazioni
+            y += 215;
+            var btnSave = CreateSaveButton(y);
+            pnl.Controls.Add(btnSave);
+
+            tab.Controls.Add(pnl);
+        }
+
+        private void BuildSystemTab(TabPage tab)
+        {
+            var pnl = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(20) };
+            int y = 15;
+
+            // Group 1: Opzioni di Avvio
+            var gbStartup = new GroupBox { Text = "Opzioni di Avvio e Notifiche", Location = new Point(15, y), Size = new Size(880, 95) };
+            chkStartWithWindows = new CheckBox { Text = "Esegui automaticamente Custode delle chiavi all'avvio di Windows", Location = new Point(20, 26), AutoSize = true };
+            chkStartupNotification = new CheckBox { Text = "Mostra notifica a fumetto all'avvio dell'applicazione", Location = new Point(20, 56), AutoSize = true };
+            gbStartup.Controls.Add(chkStartWithWindows);
+            gbStartup.Controls.Add(chkStartupNotification);
+            pnl.Controls.Add(gbStartup);
+
+            // Group 2: Archivio Crittografato DPAPI
+            y += 110;
+            var gbStorage = new GroupBox { Text = "Archivio Crittografato (Windows DPAPI)", Location = new Point(15, y), Size = new Size(880, 110) };
+            var lblPath = new Label { Text = "Posizione file vault:", Location = new Point(15, 25), AutoSize = true };
+            txtVaultPath = new TextBox { ReadOnly = true, Text = DpapiStorage.GetVaultFilePath(), Location = new Point(15, 45), Width = 660, BackColor = Color.White };
+
+            btnOpenFolder = new Button { Text = "📁 Apri Cartella Vault", Location = new Point(685, 43), Width = 175, Height = 28 };
             btnOpenFolder.Click += (s, e) =>
             {
                 string dir = Path.GetDirectoryName(DpapiStorage.GetVaultFilePath());
                 if (Directory.Exists(dir)) Process.Start("explorer.exe", dir);
             };
 
-            btnBackupNow = new Button { Text = "💾 Crea Copia di Backup", Location = new Point(205, y + 55), Width = 180, Height = 30 };
+            btnBackupNow = new Button { Text = "💾 Crea Copia di Backup Ora", Location = new Point(15, 75), Width = 210, Height = 28 };
             btnBackupNow.Click += (s, e) =>
             {
                 try
@@ -289,19 +357,86 @@ namespace Custode2.UI
                 }
             };
 
-            pnl.Controls.Add(lblVaultTitle);
-            pnl.Controls.Add(txtVaultPath);
-            pnl.Controls.Add(btnOpenFolder);
-            pnl.Controls.Add(btnBackupNow);
+            gbStorage.Controls.Add(lblPath);
+            gbStorage.Controls.Add(txtVaultPath);
+            gbStorage.Controls.Add(btnOpenFolder);
+            gbStorage.Controls.Add(btnBackupNow);
+            pnl.Controls.Add(gbStorage);
 
-            // Save Settings Button
-            y += 105;
-            var btnSaveSettings = new Button { Text = "💾 Salva Impostazioni", Location = new Point(20, y), Width = 190, Height = 35, BackColor = Color.FromArgb(0, 120, 215), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnSaveSettings.FlatAppearance.BorderSize = 0;
-            btnSaveSettings.Click += (s, e) => SaveSettingsFromUI();
-            pnl.Controls.Add(btnSaveSettings);
+            // Group 3: Chiusura & Arresto Processo
+            y += 125;
+            var gbExit = new GroupBox { Text = "Chiusura & Arresto Applicazione", Location = new Point(15, y), Size = new Size(880, 95) };
+            var lblExitDesc = new Label
+            {
+                Text = "Nota: il pulsante 'X' della finestra riduce Custode 2.0 nella System Tray (vicino all'orologio).\nPer chiudere completamente l'applicazione e arrestare il processo:",
+                Location = new Point(15, 22),
+                AutoSize = true,
+                ForeColor = Color.DarkSlateGray
+            };
+
+            btnTerminateProcess = new Button
+            {
+                Text = "🛑 Termina Processo (Chiudi del tutto)",
+                Location = new Point(15, 55),
+                Width = 260,
+                Height = 32,
+                BackColor = Color.FromArgb(195, 40, 30),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold)
+            };
+            btnTerminateProcess.FlatAppearance.BorderSize = 0;
+            btnTerminateProcess.Click += BtnTerminateProcess_Click;
+
+            gbExit.Controls.Add(lblExitDesc);
+            gbExit.Controls.Add(btnTerminateProcess);
+            pnl.Controls.Add(gbExit);
+
+            // Pulsante Salva Impostazioni
+            y += 115;
+            var btnSave = CreateSaveButton(y);
+            pnl.Controls.Add(btnSave);
 
             tab.Controls.Add(pnl);
+        }
+
+        private Button CreateSaveButton(int yPosition)
+        {
+            var btn = new Button
+            {
+                Text = "💾 Salva Tutte le Impostazioni",
+                Location = new Point(15, yPosition),
+                Width = 230,
+                Height = 35,
+                BackColor = Color.FromArgb(0, 120, 215),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold)
+            };
+            btn.FlatAppearance.BorderSize = 0;
+            btn.Click += (s, e) => SaveSettingsFromUI();
+            return btn;
+        }
+
+        private void BtnTerminateProcess_Click(object sender, EventArgs e)
+        {
+            var confirm = MessageBox.Show(
+                "Sei sicuro di voler chiudere completamente Custode delle chiavi 2.0?\n\nL'applicazione non sarà più attiva in background e le scorciatoie non funzioneranno finché non verrà riavviata.",
+                "Conferma Chiusura Custode 2.0",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (confirm == DialogResult.Yes)
+            {
+                if (_onExitRequested != null)
+                {
+                    _onExitRequested();
+                }
+                else
+                {
+                    Application.Exit();
+                }
+            }
         }
 
         private void RefreshCredentialsList()
@@ -333,10 +468,13 @@ namespace Custode2.UI
         private void LoadSettingsToUI()
         {
             var s = _vault.Settings;
+
+            // Hotkey & Template
             txtPickerHotkey.Text = s.GlobalPickerHotkey;
             txtDefaultTemplate.Text = s.DefaultTemplate;
             numInterKeyDelay.Value = Math.Max(0, Math.Min(200, s.InterKeyDelayMs));
 
+            // Visual Style
             int op = s.PickerOpacity > 0 ? s.PickerOpacity : 95;
             tbOpacity.Value = Math.Max(30, Math.Min(100, op));
             lblOpacityVal.Text = tbOpacity.Value + "%";
@@ -355,6 +493,7 @@ namespace Custode2.UI
             btnPickColor.Enabled = !s.PickerRandomColor;
             btnResetColor.Enabled = !s.PickerRandomColor;
 
+            // Position mode
             if (string.Equals(s.PickerPositionMode, "CenterScreen", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(s.PickerPositionMode, "Center", StringComparison.OrdinalIgnoreCase))
             {
@@ -365,9 +504,15 @@ namespace Custode2.UI
                 rbPosCursor.Checked = true;
             }
 
+            // Clipboard
             int clipSec = s.ClipboardClearSeconds > 0 ? s.ClipboardClearSeconds : 15;
             numClipboardSeconds.Value = Math.Max(3, Math.Min(120, clipSec));
 
+            // Startup & Notification
+            chkStartWithWindows.Checked = StartupHelper.IsStartupEnabled();
+            chkStartupNotification.Checked = s.ShowStartupNotification;
+
+            // Whitelist
             lbWhitelist.Items.Clear();
             if (s.WhitelistedProcesses != null)
             {
@@ -381,6 +526,7 @@ namespace Custode2.UI
         private void SaveSettingsFromUI()
         {
             var s = _vault.Settings;
+
             s.GlobalPickerHotkey = txtPickerHotkey.Text.Trim();
             s.DefaultTemplate = txtDefaultTemplate.Text.Trim();
             s.InterKeyDelayMs = (int)numInterKeyDelay.Value;
@@ -390,6 +536,11 @@ namespace Custode2.UI
             s.PickerRandomColor = chkRandomColor.Checked;
             s.PickerPositionMode = rbPosCenter.Checked ? "CenterScreen" : "Cursor";
             s.ClipboardClearSeconds = (int)numClipboardSeconds.Value;
+
+            s.StartWithWindows = chkStartWithWindows.Checked;
+            StartupHelper.SetStartupEnabled(chkStartWithWindows.Checked);
+
+            s.ShowStartupNotification = chkStartupNotification.Checked;
 
             if (_onVaultChanged != null) _onVaultChanged();
             if (_onHotkeysReloadRequested != null) _onHotkeysReloadRequested();

@@ -72,9 +72,12 @@ namespace Custode2.UI
 
             RegisterAllHotkeys();
 
-            // Notify user of background startup
-            string tipMsg = string.Format("In esecuzione in background.\nPremi {0} per la ricerca rapida.", _vault.Settings.GlobalPickerHotkey);
-            _trayIcon.ShowBalloonTip(2000, "Custode 2.0", tipMsg, ToolTipIcon.Info);
+            // Notify user of background startup if enabled
+            if (_vault.Settings.ShowStartupNotification)
+            {
+                string tipMsg = string.Format("In esecuzione in background.\nPremi {0} per la ricerca rapida.", _vault.Settings.GlobalPickerHotkey);
+                _trayIcon.ShowBalloonTip(2000, "Custode 2.0", tipMsg, ToolTipIcon.Info);
+            }
         }
 
         private void RegisterAllHotkeys()
@@ -147,7 +150,7 @@ namespace Custode2.UI
         {
             if (_mainForm == null || _mainForm.IsDisposed)
             {
-                _mainForm = new MainForm(_vault, SaveVault, RegisterAllHotkeys);
+                _mainForm = new MainForm(_vault, SaveVault, RegisterAllHotkeys, ExitApplication);
             }
             _mainForm.Show();
             _mainForm.WindowState = FormWindowState.Normal;

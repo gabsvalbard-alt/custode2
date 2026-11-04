@@ -51,6 +51,7 @@
     <Compile Include="Security\DpapiStorage.cs" />
     <Compile Include="Security\PasswordFieldDetector.cs" />
     <Compile Include="Security\ClipboardSecurity.cs" />
+    <Compile Include="Security\StartupHelper.cs" />
     <Compile Include="Macro\NativeMethods.cs" />
     <Compile Include="Macro\MacroEngine.cs" />
     <Compile Include="Hotkeys\GlobalHotkeyManager.cs" />
