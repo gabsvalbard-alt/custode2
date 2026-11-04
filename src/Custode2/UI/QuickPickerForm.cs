@@ -38,6 +38,7 @@ namespace Custode2.UI
         private ColumnHeader colIndex;
         private ColumnHeader colTitle;
         private ColumnHeader colUser;
+        private ColumnHeader colProcess;
         private ColumnHeader colCopy;
 
         private static readonly Random _rnd = new Random();
@@ -128,9 +129,10 @@ namespace Custode2.UI
             lvResults.SmallImageList = imgList;
 
             colIndex = lvResults.Columns.Add("#", 44, HorizontalAlignment.Center);
-            colTitle = lvResults.Columns.Add("Servizio / Titolo", 180);
-            colUser = lvResults.Columns.Add("Utente / Email", 140);
-            colCopy = lvResults.Columns.Add("Password", 76, HorizontalAlignment.Center);
+            colTitle = lvResults.Columns.Add("Servizio / Titolo", 170);
+            colUser = lvResults.Columns.Add("Utente / Email", 130);
+            colProcess = lvResults.Columns.Add("Processo", 110);
+            colCopy = lvResults.Columns.Add("Copia psw", 70, HorizontalAlignment.Center);
 
             lvResults.DoubleClick += (s, e) => ExecuteSelected();
             lvResults.MouseClick += LvResults_MouseClick;
@@ -185,16 +187,19 @@ namespace Custode2.UI
             }
 
             int x0 = 0;
-            int w0 = colIndex != null ? colIndex.Width : 42;
+            int w0 = colIndex != null ? colIndex.Width : 44;
 
             int x1 = x0 + w0;
-            int w1 = colTitle != null ? colTitle.Width : 180;
+            int w1 = colTitle != null ? colTitle.Width : 170;
 
             int x2 = x1 + w1;
-            int w2 = colUser != null ? colUser.Width : 140;
+            int w2 = colUser != null ? colUser.Width : 130;
 
             int x3 = x2 + w2;
-            int w3 = colCopy != null ? colCopy.Width : 72;
+            int w3 = colProcess != null ? colProcess.Width : 110;
+
+            int x4 = x3 + w3;
+            int w4 = colCopy != null ? colCopy.Width : 70;
 
             using (var textBrush = new SolidBrush(_headerFgColor))
             using (var font = new Font("Segoe UI", 9f, FontStyle.Bold))
@@ -205,7 +210,8 @@ namespace Custode2.UI
                     g.DrawString("#", font, textBrush, new Rectangle(x0, 0, w0, rect.Height), sfCenter);
                     g.DrawString("Servizio / Titolo", font, textBrush, new Rectangle(x1 + 6, 0, Math.Max(10, w1 - 8), rect.Height), sfLeft);
                     g.DrawString("Utente / Email", font, textBrush, new Rectangle(x2 + 6, 0, Math.Max(10, w2 - 8), rect.Height), sfLeft);
-                    g.DrawString("Password", font, textBrush, new Rectangle(x3, 0, w3, rect.Height), sfCenter);
+                    g.DrawString("Processo", font, textBrush, new Rectangle(x3 + 6, 0, Math.Max(10, w3 - 8), rect.Height), sfLeft);
+                    g.DrawString("Copia psw", font, textBrush, new Rectangle(x4, 0, w4, rect.Height), sfCenter);
                 }
             }
         }
@@ -373,6 +379,7 @@ namespace Custode2.UI
             // 1. Measure text to compute adaptive width
             int maxTitleW = 120;
             int maxUserW = 100;
+            int maxProcessW = 70;
 
             using (Graphics g = lvResults.CreateGraphics())
             {
@@ -388,20 +395,26 @@ namespace Custode2.UI
                         int w = (int)g.MeasureString(match.Username, lvResults.Font).Width;
                         if (w > maxUserW) maxUserW = w;
                     }
+                    if (!string.IsNullOrEmpty(match.AppFilter))
+                    {
+                        int w = (int)g.MeasureString(match.AppFilter, lvResults.Font).Width;
+                        if (w > maxProcessW) maxProcessW = w;
+                    }
                 }
             }
 
             // Cap measured widths to reasonable boundaries
-            maxTitleW = Math.Min(310, maxTitleW + 15);
-            maxUserW = Math.Min(230, maxUserW + 15);
+            maxTitleW = Math.Min(260, maxTitleW + 15);
+            maxUserW = Math.Min(190, maxUserW + 15);
+            maxProcessW = Math.Min(160, maxProcessW + 15);
 
             int colIndexW = 44;
-            int colCopyW = 76;
-            int paddingAndSlack = 40;
+            int colCopyW = 70;
+            int paddingAndSlack = 45;
 
-            int targetWidth = colIndexW + maxTitleW + maxUserW + colCopyW + paddingAndSlack;
-            // Adaptive clamp: min 440px, max 680px
-            targetWidth = Math.Max(440, Math.Min(680, targetWidth));
+            int targetWidth = colIndexW + maxTitleW + maxUserW + maxProcessW + colCopyW + paddingAndSlack;
+            // Adaptive clamp: min 520px, max 800px
+            targetWidth = Math.Max(520, Math.Min(800, targetWidth));
 
             // 2. Populate rows first so we can accurately measure row count
             for (int i = 0; i < matches.Count; i++)
@@ -412,7 +425,8 @@ namespace Custode2.UI
                 var lvi = new ListViewItem(indexLabel);
                 lvi.SubItems.Add(item.Title ?? string.Empty);
                 lvi.SubItems.Add(item.Username ?? string.Empty);
-                lvi.SubItems.Add("📋 Copia");
+                lvi.SubItems.Add(string.IsNullOrEmpty(item.AppFilter) ? "-" : item.AppFilter);
+                lvi.SubItems.Add("📋");
                 lvi.Tag = item;
                 lvResults.Items.Add(lvi);
             }
@@ -465,12 +479,13 @@ namespace Custode2.UI
             // 4. Distribute column widths inside client area
             int scrollbarW = (rowCount > maxVisibleRows) ? SystemInformation.VerticalScrollBarWidth : 0;
             int usableW = this.ClientSize.Width - pnlMain.Padding.Horizontal - scrollbarW - 8;
-            int remainingUserW = usableW - (colIndexW + maxTitleW + colCopyW);
+            int remainingUserW = usableW - (colIndexW + maxTitleW + maxProcessW + colCopyW);
 
             colIndex.Width = colIndexW;
-            colCopy.Width = colCopyW;
             colTitle.Width = maxTitleW;
             colUser.Width = Math.Max(80, remainingUserW);
+            colProcess.Width = maxProcessW;
+            colCopy.Width = colCopyW;
 
             pnlHeader.Invalidate();
         }
@@ -536,7 +551,7 @@ namespace Custode2.UI
             if (hit.Item != null && hit.SubItem != null)
             {
                 int col = hit.Item.SubItems.IndexOf(hit.SubItem);
-                if (col == 3) // Copy button clicked
+                if (col == 4) // Copy button clicked (col 4)
                 {
                     var entry = hit.Item.Tag as CredentialEntry;
                     if (entry != null)
@@ -553,7 +568,7 @@ namespace Custode2.UI
 
             if (subItem != null)
             {
-                subItem.Text = "✓ Copiata!";
+                subItem.Text = "✓";
             }
 
             int clearSec = _settings.ClipboardClearSeconds > 0 ? _settings.ClipboardClearSeconds : 15;
@@ -585,8 +600,8 @@ namespace Custode2.UI
                     var entry = lvResults.SelectedItems[0].Tag as CredentialEntry;
                     if (entry != null)
                     {
-                        ListViewItem.ListViewSubItem sub = lvResults.SelectedItems[0].SubItems.Count > 3
-                            ? lvResults.SelectedItems[0].SubItems[3]
+                        ListViewItem.ListViewSubItem sub = lvResults.SelectedItems[0].SubItems.Count > 4
+                            ? lvResults.SelectedItems[0].SubItems[4]
                             : null;
                         CopyPasswordAndClose(entry, sub);
                         e.Handled = true;
