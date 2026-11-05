@@ -89,7 +89,7 @@ namespace Custode2.UI
 
             var tabCreds = new TabPage("🔑 Archivio Credenziali");
             var tabAppearance = new TabPage("🎨 Aspetto & Popup");
-            var tabMacro = new TabPage("⚙️ Macro & Whitelist");
+            var tabMacro = new TabPage("⚙️ Black/Whitelist & Macro");
             var tabSystem = new TabPage("💻 Sistema & Archivio");
 
             BuildCredentialsTab(tabCreds);
@@ -293,7 +293,7 @@ namespace Custode2.UI
 
             var lblDefTemplate = new Label { Text = "Template predefinito nuove voci:", Location = new Point(15, 30), AutoSize = true };
             txtDefaultTemplate = new TextBox { Location = new Point(240, 27), Width = 360 };
-            var lblTmplHint = new Label { Text = "Token supportati: $USER$, <TAB>, $PASS$, <ENTER>, $DELAY(ms)$", Location = new Point(240, 52), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
+            var lblTmplHint = new Label { Text = "Token supportati: $USER$, <TAB>, $PASS$, <ENTER>, <UP>, <DOWN>, <LEFT>, <RIGHT>, $DELAY(ms)$", Location = new Point(240, 52), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
 
             var lblDelay = new Label { Text = "Ritardo tra caratteri (ms):", Location = new Point(15, 80), AutoSize = true };
             numInterKeyDelay = new NumericUpDown { Location = new Point(240, 78), Width = 80, Minimum = 0, Maximum = 200, Value = 15 };

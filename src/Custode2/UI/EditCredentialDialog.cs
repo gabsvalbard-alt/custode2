@@ -32,7 +32,7 @@ namespace Custode2.UI
         {
             this.Text = Entry.Id == null ? "Nuova Credenziale" : "Modifica Credenziale";
             try { this.Icon = TrayAppContext.GetAppIcon(); } catch { }
-            this.Size = new Size(680, 580);
+            this.Size = new Size(680, 600);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -82,16 +82,20 @@ namespace Custode2.UI
 
             // Preset Buttons for template
             y += 28;
-            var pnlPresets = new FlowLayoutPanel { Location = new Point(inputX, y), Width = inputWidth, Height = 30 };
+            var pnlPresets = new FlowLayoutPanel { Location = new Point(inputX, y), Width = inputWidth, Height = 56, WrapContents = true };
             AddTokenButton(pnlPresets, "$USER$");
             AddTokenButton(pnlPresets, "<TAB>");
             AddTokenButton(pnlPresets, "$PASS$");
             AddTokenButton(pnlPresets, "<ENTER>");
+            AddTokenButton(pnlPresets, "<UP>");
+            AddTokenButton(pnlPresets, "<DOWN>");
+            AddTokenButton(pnlPresets, "<LEFT>");
+            AddTokenButton(pnlPresets, "<RIGHT>");
             AddTokenButton(pnlPresets, "$DELAY(500)$");
             this.Controls.Add(pnlPresets);
 
             // Direct Hotkey
-            y += spacing;
+            y += 62;
             var lblHotkey = new Label { Text = "Scorciatoia Diretta:", Location = new Point(labelX, y + 3), AutoSize = true };
             txtHotkey = new TextBox { Location = new Point(inputX, y), Width = inputWidth };
             var lblHotkeyHint = new Label { Text = "Es. Ctrl+Alt+1, Ctrl+Shift+G (lascia vuoto se non necessaria)", Location = new Point(inputX, y + 26), AutoSize = true, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8.5f) };
@@ -176,7 +180,9 @@ namespace Custode2.UI
             {
                 Text = token,
                 AutoSize = true,
-                Height = 25,
+                Height = 24,
+                Margin = new Padding(2, 1, 2, 1),
+                Padding = new Padding(3, 0, 3, 0),
                 BackColor = Color.FromArgb(240, 240, 242),
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 8.5f)

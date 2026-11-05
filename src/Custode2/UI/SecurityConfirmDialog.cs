@@ -156,9 +156,7 @@ namespace Custode2.UI
             {
                 chkRememberProcess = new CheckBox
                 {
-                    Text = string.IsNullOrEmpty(processName)
-                        ? "Fidati sempre di questa applicazione per le prossime volte"
-                        : string.Format("Fidati sempre dell'applicazione '{0}'", processName),
+                    Text = "Fidati sempre (imposta flag 'Fidati' su questa credenziale)",
                     Location = new Point(left, nextY),
                     Size = new Size(maxContentWidth, 26),
                     Checked = false

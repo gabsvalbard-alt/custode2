@@ -110,14 +110,20 @@ namespace Custode2.Macro
                             return;
                         }
 
-                        if (remember && !string.IsNullOrEmpty(processName))
+                        if (remember)
                         {
-                            if (settings.WhitelistedProcesses == null) settings.WhitelistedProcesses = new List<string>();
-                            if (!settings.WhitelistedProcesses.Contains(processName.ToLowerInvariant()))
+                            entry.BypassSecurityCheck = true;
+
+                            if (!string.IsNullOrEmpty(processName))
                             {
-                                settings.WhitelistedProcesses.Add(processName.ToLowerInvariant());
-                                if (onSettingsUpdated != null) onSettingsUpdated();
+                                if (settings.WhitelistedProcesses == null) settings.WhitelistedProcesses = new List<string>();
+                                if (!settings.WhitelistedProcesses.Contains(processName.ToLowerInvariant()))
+                                {
+                                    settings.WhitelistedProcesses.Add(processName.ToLowerInvariant());
+                                }
                             }
+
+                            if (onSettingsUpdated != null) onSettingsUpdated();
                         }
 
                         // Refocus target window after dialog closes
@@ -239,18 +245,24 @@ namespace Custode2.Macro
                 }
             }
 
-            if (sendAnyway && remember && !string.IsNullOrEmpty(processName))
+            if (sendAnyway && remember)
             {
-                if (settings.WhitelistedProcesses == null)
-                    settings.WhitelistedProcesses = new List<string>();
+                entry.BypassSecurityCheck = true;
 
-                if (!settings.WhitelistedProcesses.Contains(processName.ToLowerInvariant()))
+                if (!string.IsNullOrEmpty(processName))
                 {
-                    settings.WhitelistedProcesses.Add(processName.ToLowerInvariant());
-                    if (onSettingsUpdated != null)
+                    if (settings.WhitelistedProcesses == null)
+                        settings.WhitelistedProcesses = new List<string>();
+
+                    if (!settings.WhitelistedProcesses.Contains(processName.ToLowerInvariant()))
                     {
-                        onSettingsUpdated();
+                        settings.WhitelistedProcesses.Add(processName.ToLowerInvariant());
                     }
+                }
+
+                if (onSettingsUpdated != null)
+                {
+                    onSettingsUpdated();
                 }
             }
 
@@ -367,6 +379,22 @@ namespace Custode2.Macro
                     {
                         actions.Add(new MacroAction { Type = ActionType.PressVirtualKey, VirtualKey = NativeMethods.VK_ESCAPE });
                     }
+                    else if (inner == "UP" || inner == "SU" || inner == "FRECCIA_SU" || inner == "ARROWUP")
+                    {
+                        actions.Add(new MacroAction { Type = ActionType.PressVirtualKey, VirtualKey = NativeMethods.VK_UP });
+                    }
+                    else if (inner == "DOWN" || inner == "GIU" || inner == "GIÙ" || inner == "FRECCIA_GIU" || inner == "ARROWDOWN")
+                    {
+                        actions.Add(new MacroAction { Type = ActionType.PressVirtualKey, VirtualKey = NativeMethods.VK_DOWN });
+                    }
+                    else if (inner == "LEFT" || inner == "SINISTRA" || inner == "FRECCIA_SINISTRA" || inner == "ARROWLEFT")
+                    {
+                        actions.Add(new MacroAction { Type = ActionType.PressVirtualKey, VirtualKey = NativeMethods.VK_LEFT });
+                    }
+                    else if (inner == "RIGHT" || inner == "DESTRA" || inner == "FRECCIA_DESTRA" || inner == "ARROWRIGHT")
+                    {
+                        actions.Add(new MacroAction { Type = ActionType.PressVirtualKey, VirtualKey = NativeMethods.VK_RIGHT });
+                    }
                     else if (inner.StartsWith("DELAY(") && inner.EndsWith(")"))
                     {
                         string numStr = inner.Substring(6, inner.Length - 7);
@@ -457,11 +485,21 @@ namespace Custode2.Macro
 
             var inputs = new NativeMethods.INPUT[2];
 
+            uint flagsDown = 0;
+            uint flagsUp = NativeMethods.KEYEVENTF_KEYUP;
+
+            if (vk == NativeMethods.VK_UP || vk == NativeMethods.VK_DOWN ||
+                vk == NativeMethods.VK_LEFT || vk == NativeMethods.VK_RIGHT)
+            {
+                flagsDown |= NativeMethods.KEYEVENTF_EXTENDEDKEY;
+                flagsUp |= NativeMethods.KEYEVENTF_EXTENDEDKEY;
+            }
+
             // Key down
             inputs[0].type = NativeMethods.INPUT_KEYBOARD;
             inputs[0].u.ki.wVk = vk;
             inputs[0].u.ki.wScan = 0;
-            inputs[0].u.ki.dwFlags = 0;
+            inputs[0].u.ki.dwFlags = flagsDown;
             inputs[0].u.ki.time = 0;
             inputs[0].u.ki.dwExtraInfo = IntPtr.Zero;
 
@@ -469,7 +507,7 @@ namespace Custode2.Macro
             inputs[1].type = NativeMethods.INPUT_KEYBOARD;
             inputs[1].u.ki.wVk = vk;
             inputs[1].u.ki.wScan = 0;
-            inputs[1].u.ki.dwFlags = NativeMethods.KEYEVENTF_KEYUP;
+            inputs[1].u.ki.dwFlags = flagsUp;
             inputs[1].u.ki.time = 0;
             inputs[1].u.ki.dwExtraInfo = IntPtr.Zero;
 

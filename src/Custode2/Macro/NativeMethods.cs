@@ -37,6 +37,10 @@ namespace Custode2.Macro
         public const ushort VK_RETURN = 0x0D;
         public const ushort VK_ESCAPE = 0x1B;
         public const ushort VK_SPACE = 0x20;
+        public const ushort VK_LEFT = 0x25;
+        public const ushort VK_UP = 0x26;
+        public const ushort VK_RIGHT = 0x27;
+        public const ushort VK_DOWN = 0x28;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct INPUT
