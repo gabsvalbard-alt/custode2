@@ -57,7 +57,7 @@ namespace Custode2.Security
                 // Process inspection might fail for system processes, ignore
             }
 
-            // 3. Process Whitelist Check (e.g. saplogon.exe, sapgui.exe, or entry's specific AppFilter)
+            // 3. Process Whitelist Check (Global settings whitelist)
             if (settings != null && settings.WhitelistedProcesses != null && !string.IsNullOrEmpty(processName))
             {
                 foreach (var wp in settings.WhitelistedProcesses)
@@ -67,15 +67,6 @@ namespace Custode2.Security
                         details = string.Format("Applicazione in whitelist di sistema: '{0}'", processName);
                         return PasswordDetectionResult.Whitelisted;
                     }
-                }
-            }
-
-            if (entry != null && !string.IsNullOrEmpty(entry.AppFilter))
-            {
-                if (entry.MatchesProcess(processName, windowTitle))
-                {
-                    details = string.Format("Corrispondenza con filtro credenziale: '{0}'", entry.AppFilter.Trim());
-                    return PasswordDetectionResult.Whitelisted;
                 }
             }
 
@@ -244,14 +235,6 @@ namespace Custode2.Security
                     {
                         return true;
                     }
-                }
-            }
-
-            if (entry != null && !string.IsNullOrEmpty(entry.AppFilter))
-            {
-                if (entry.MatchesProcess(processName, null))
-                {
-                    return true;
                 }
             }
 
