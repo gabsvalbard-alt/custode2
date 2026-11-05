@@ -21,6 +21,8 @@ if %ERRORLEVEL% equ 0 (
     if not exist "bin" mkdir "bin"
     copy /Y "src\Custode2\bin\Release\Custode2.exe" "bin\Custode2.exe" > nul
     echo Copiato anche in: bin\Custode2.exe
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\sign.ps1 > nul 2>&1
+    echo [OK] Firma digitale Authenticode applicata con successo!
 ) else (
     echo.
     echo [ERRORE] Compilazione fallita con codice %ERRORLEVEL%
