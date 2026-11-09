@@ -371,7 +371,7 @@ namespace Custode2.Macro
                     {
                         actions.Add(new MacroAction { Type = ActionType.PressVirtualKey, VirtualKey = NativeMethods.VK_RETURN });
                     }
-                    else if (inner == "SPACE" || inner == "SPAZIO")
+                    else if (inner == "SPACE" || inner == "SPAZIO" || inner == "BLANK" || inner == "BARRA")
                     {
                         actions.Add(new MacroAction { Type = ActionType.PressVirtualKey, VirtualKey = NativeMethods.VK_SPACE });
                     }

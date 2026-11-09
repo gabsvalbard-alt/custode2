@@ -87,6 +87,7 @@ namespace Custode2.UI
             AddTokenButton(pnlPresets, "<TAB>");
             AddTokenButton(pnlPresets, "$PASS$");
             AddTokenButton(pnlPresets, "<ENTER>");
+            AddTokenButton(pnlPresets, "<SPACE>");
             AddTokenButton(pnlPresets, "<UP>");
             AddTokenButton(pnlPresets, "<DOWN>");
             AddTokenButton(pnlPresets, "<LEFT>");
