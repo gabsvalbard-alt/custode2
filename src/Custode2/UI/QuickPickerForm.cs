@@ -25,6 +25,7 @@ namespace Custode2.UI
         private Color _headerFgColor = Color.FromArgb(220, 220, 225);
         private Color _headerBorderColor = Color.FromArgb(65, 66, 70);
 
+        private readonly VaultData _vault;
         private readonly List<CredentialEntry> _allEntries;
         private readonly AppSettings _settings;
         private readonly Action _onSettingsUpdated;
@@ -62,8 +63,24 @@ namespace Custode2.UI
             Color.FromArgb(20, 90, 50)     // Emerald Dark
         };
 
+        public QuickPickerForm(VaultData vault, Action onSettingsUpdated)
+            : this(vault, vault != null ? vault.Settings : null, onSettingsUpdated)
+        {
+        }
+
+        public QuickPickerForm(VaultData vault, AppSettings settings, Action onSettingsUpdated)
+        {
+            _vault = vault;
+            _allEntries = vault != null ? vault.Entries : new List<CredentialEntry>();
+            _settings = settings ?? (vault != null ? vault.Settings : new AppSettings());
+            _onSettingsUpdated = onSettingsUpdated;
+
+            InitializeComponent();
+        }
+
         public QuickPickerForm(List<CredentialEntry> entries, AppSettings settings, Action onSettingsUpdated)
         {
+            _vault = null;
             _allEntries = entries ?? new List<CredentialEntry>();
             _settings = settings ?? new AppSettings();
             _onSettingsUpdated = onSettingsUpdated;
@@ -569,7 +586,8 @@ namespace Custode2.UI
             }
 
             int clearSec = _settings.ClipboardClearSeconds > 0 ? _settings.ClipboardClearSeconds : 15;
-            ClipboardSecurity.CopyPassword(entry.Password ?? string.Empty, clearSec);
+            string passToCopy = entry.ResolvePassword(_vault);
+            ClipboardSecurity.CopyPassword(passToCopy, clearSec);
 
             // Small delay to let user see the checkmark, then hide and restore previous window
             var timer = new Timer { Interval = 230 };
@@ -677,7 +695,7 @@ namespace Custode2.UI
             _isShowingPicker = false;
             this.Hide();
 
-            MacroEngine.Execute(entry, target, _settings, _onSettingsUpdated);
+            MacroEngine.Execute(entry, target, _settings, _vault, _onSettingsUpdated);
         }
 
         private void CancelAndClose()

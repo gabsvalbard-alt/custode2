@@ -31,6 +31,11 @@ namespace Custode2.Macro
 
         public static void Execute(CredentialEntry entry, IntPtr targetHwnd, AppSettings settings, Action onSettingsUpdated)
         {
+            Execute(entry, targetHwnd, settings, null, onSettingsUpdated);
+        }
+
+        public static void Execute(CredentialEntry entry, IntPtr targetHwnd, AppSettings settings, VaultData vault, Action onSettingsUpdated)
+        {
             if (entry == null) return;
             if (settings == null) settings = new AppSettings();
 
@@ -143,7 +148,7 @@ namespace Custode2.Macro
 
                     // 3. Parse template tokens
                     string template = string.IsNullOrEmpty(entry.Template) ? settings.DefaultTemplate : entry.Template;
-                    List<MacroAction> actions = ParseTemplate(template, entry);
+                    List<MacroAction> actions = ParseTemplate(template, entry, vault);
 
                     // 4. Execute actions in sequence with Active Focus Guard
                     foreach (var action in actions)
@@ -199,7 +204,8 @@ namespace Custode2.Macro
                                     return;
                                 }
 
-                                if (!SendUnicodeText(entry.Password ?? string.Empty, settings.InterKeyDelayMs, targetHwnd, targetPid))
+                                string passwordToType = entry.ResolvePassword(vault);
+                                if (!SendUnicodeText(passwordToType, settings.InterKeyDelayMs, targetHwnd, targetPid))
                                     return;
                                 break;
                         }
@@ -331,13 +337,13 @@ namespace Custode2.Macro
             return false;
         }
 
-        private static List<MacroAction> ParseTemplate(string template, CredentialEntry entry)
+        private static List<MacroAction> ParseTemplate(string template, CredentialEntry entry, VaultData vault = null)
         {
             var actions = new List<MacroAction>();
             if (string.IsNullOrEmpty(template)) return actions;
 
-            // Regex matches tokens like $USER$, <USER>, [USER], {USER}, $TAB$, <TAB>, [TAB], $ENTER$, <INVIO>, $DELAY(100)$, etc.
-            var regex = new Regex(@"(\$[A-Za-z0-9_]+(?:\(\d+\))?\$|<[A-Za-z0-9_]+(?:\(\d+\))?>|\[[A-Za-z0-9_]+(?:\(\d+\))?\]|\{[A-Za-z0-9_]+(?:\(\d+\))?\})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+            // Regex matches tokens like $USER$, <USER>, [USER], {USER}, $TAB$, <TAB>, [TAB], $ENTER$, <INVIO>, $DELAY(100)$, <JOLLY(Nome)>, etc.
+            var regex = new Regex(@"(\$[A-Za-z0-9_]+(?:\([^$]+\))?\$|<[A-Za-z0-9_]+(?:\([^>]+\))?>|\[[A-Za-z0-9_]+(?:\([^\]]+\))?\]|\{[A-Za-z0-9_]+(?:\([^}]+\))?\})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
             string[] parts = regex.Split(template);
 
             foreach (var part in parts)
@@ -362,6 +368,17 @@ namespace Custode2.Macro
                     else if (inner == "PASS" || inner == "PASSWORD")
                     {
                         actions.Add(new MacroAction { Type = ActionType.TypePassword });
+                    }
+                    else if (inner.StartsWith("JOLLY(") && inner.EndsWith(")"))
+                    {
+                        string jollyName = inner.Substring(6, inner.Length - 7).Trim();
+                        string jollyVal = string.Empty;
+                        if (vault != null && vault.SharedPasswords != null)
+                        {
+                            var sp = vault.SharedPasswords.Find(p => p.Name != null && p.Name.Equals(jollyName, StringComparison.OrdinalIgnoreCase));
+                            if (sp != null) jollyVal = sp.Value ?? string.Empty;
+                        }
+                        actions.Add(new MacroAction { Type = ActionType.TypeUnicodeText, Text = jollyVal });
                     }
                     else if (inner == "TAB" || inner == "TABULATORE")
                     {

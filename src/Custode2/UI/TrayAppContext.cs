@@ -129,7 +129,7 @@ namespace Custode2.UI
                 var entry = _vault.Entries.FirstOrDefault(e => e.Id == tag);
                 if (entry != null)
                 {
-                    MacroEngine.Execute(entry, currentTargetHwnd, _vault.Settings, SaveVault);
+                    MacroEngine.Execute(entry, currentTargetHwnd, _vault.Settings, _vault, SaveVault);
                 }
             }
         }
@@ -143,7 +143,7 @@ namespace Custode2.UI
 
             if (_pickerForm == null || _pickerForm.IsDisposed)
             {
-                _pickerForm = new QuickPickerForm(_vault.Entries, _vault.Settings, SaveVault);
+                _pickerForm = new QuickPickerForm(_vault, SaveVault);
             }
 
             _pickerForm.ShowPicker(targetHwnd);

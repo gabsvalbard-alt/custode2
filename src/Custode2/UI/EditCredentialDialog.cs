@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using Custode2.Models;
@@ -7,10 +8,29 @@ namespace Custode2.UI
 {
     public class EditCredentialDialog : Form
     {
+        private class SharedPasswordComboItem
+        {
+            public string Id { get; set; }
+            public string Name { get; set; }
+            public string MaskedValue { get; set; }
+
+            public override string ToString()
+            {
+                return string.Format("{0} ({1})", Name, MaskedValue);
+            }
+        }
+
         private TextBox txtTitle;
         private TextBox txtUsername;
+        private RadioButton rbPasswordCustom;
+        private RadioButton rbPasswordJolly;
+        private Panel pnlCustomPassword;
+        private Panel pnlJollyPassword;
         private TextBox txtPassword;
         private Button btnTogglePassword;
+        private ComboBox cmbJolly;
+        private Button btnManageJolly;
+        private Label lblJollyEmpty;
         private TextBox txtTemplate;
         private TextBox txtHotkey;
         private TextBox txtAppFilter;
@@ -19,11 +39,17 @@ namespace Custode2.UI
         private Button btnOk;
         private Button btnCancel;
 
+        private readonly VaultData _vault;
+        private readonly Action _onVaultChanged;
+
         public CredentialEntry Entry { get; private set; }
 
-        public EditCredentialDialog(CredentialEntry entry = null)
+        public EditCredentialDialog(CredentialEntry entry = null, VaultData vault = null, Action onVaultChanged = null)
         {
             Entry = entry ?? new CredentialEntry();
+            _vault = vault ?? new VaultData();
+            _onVaultChanged = onVaultChanged;
+
             InitializeComponent();
             PopulateFields();
         }
@@ -32,7 +58,7 @@ namespace Custode2.UI
         {
             this.Text = Entry.Id == null ? "Nuova Credenziale" : "Modifica Credenziale";
             try { this.Icon = TrayAppContext.GetAppIcon(); } catch { }
-            this.Size = new Size(680, 600);
+            this.Size = new Size(690, 640);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -42,9 +68,9 @@ namespace Custode2.UI
 
             int labelX = 25;
             int inputX = 175;
-            int inputWidth = 450;
-            int y = 20;
-            int spacing = 42;
+            int inputWidth = 460;
+            int y = 18;
+            int spacing = 40;
 
             // Titolo
             var lblTitle = new Label { Text = "Titolo / Servizio *:", Location = new Point(labelX, y + 3), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
@@ -59,19 +85,85 @@ namespace Custode2.UI
             this.Controls.Add(lblUsername);
             this.Controls.Add(txtUsername);
 
-            // Password
+            // Password Selection Mode (Custom vs Jolly)
             y += spacing;
-            var lblPassword = new Label { Text = "Password *:", Location = new Point(labelX, y + 3), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
-            txtPassword = new TextBox { Location = new Point(inputX, y), Width = inputWidth - 65, UseSystemPasswordChar = true };
-            btnTogglePassword = new Button { Text = "Mostra", Location = new Point(inputX + inputWidth - 60, y - 1), Width = 60, Height = txtPassword.Height + 2 };
+            var lblPasswordType = new Label { Text = "Tipo Password *:", Location = new Point(labelX, y + 3), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
+            this.Controls.Add(lblPasswordType);
+
+            rbPasswordCustom = new RadioButton
+            {
+                Text = "Password Dedicata",
+                Location = new Point(inputX, y + 2),
+                AutoSize = true,
+                Checked = true
+            };
+            rbPasswordCustom.CheckedChanged += (s, e) => UpdatePasswordModeVisibility();
+            this.Controls.Add(rbPasswordCustom);
+
+            rbPasswordJolly = new RadioButton
+            {
+                Text = "Password Jolly / Condivisa 🔑",
+                Location = new Point(inputX + 170, y + 2),
+                AutoSize = true
+            };
+            rbPasswordJolly.CheckedChanged += (s, e) => UpdatePasswordModeVisibility();
+            this.Controls.Add(rbPasswordJolly);
+
+            // Panel: Custom Password
+            y += 30;
+            pnlCustomPassword = new Panel
+            {
+                Location = new Point(inputX, y),
+                Size = new Size(inputWidth, 34)
+            };
+            txtPassword = new TextBox { Location = new Point(0, 2), Width = inputWidth - 75, UseSystemPasswordChar = true };
+            btnTogglePassword = new Button { Text = "Mostra", Location = new Point(inputWidth - 70, 1), Width = 70, Height = txtPassword.Height + 2 };
             btnTogglePassword.Click += (s, e) =>
             {
                 txtPassword.UseSystemPasswordChar = !txtPassword.UseSystemPasswordChar;
                 btnTogglePassword.Text = txtPassword.UseSystemPasswordChar ? "Mostra" : "Nascondi";
             };
-            this.Controls.Add(lblPassword);
-            this.Controls.Add(txtPassword);
-            this.Controls.Add(btnTogglePassword);
+            pnlCustomPassword.Controls.Add(txtPassword);
+            pnlCustomPassword.Controls.Add(btnTogglePassword);
+            this.Controls.Add(pnlCustomPassword);
+
+            // Panel: Jolly Password Selection
+            pnlJollyPassword = new Panel
+            {
+                Location = new Point(inputX, y),
+                Size = new Size(inputWidth, 34),
+                Visible = false
+            };
+            cmbJolly = new ComboBox
+            {
+                Location = new Point(0, 2),
+                Width = inputWidth - 125,
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            btnManageJolly = new Button
+            {
+                Text = "⚙️ Gestisci...",
+                Location = new Point(inputWidth - 120, 1),
+                Width = 120,
+                Height = cmbJolly.Height + 2,
+                BackColor = Color.FromArgb(240, 243, 246),
+                FlatStyle = FlatStyle.Flat
+            };
+            btnManageJolly.Click += (s, e) => OpenManageSharedPasswords();
+
+            lblJollyEmpty = new Label
+            {
+                Text = "Nessuna Password Jolly definita. Clicca 'Gestisci' per crearne una.",
+                Location = new Point(0, 6),
+                AutoSize = true,
+                ForeColor = Color.FromArgb(180, 50, 20),
+                Visible = false
+            };
+
+            pnlJollyPassword.Controls.Add(cmbJolly);
+            pnlJollyPassword.Controls.Add(btnManageJolly);
+            pnlJollyPassword.Controls.Add(lblJollyEmpty);
+            this.Controls.Add(pnlJollyPassword);
 
             // Template Macro
             y += spacing;
@@ -175,6 +267,74 @@ namespace Custode2.UI
             this.CancelButton = btnCancel;
         }
 
+        private void UpdatePasswordModeVisibility()
+        {
+            bool isJolly = rbPasswordJolly.Checked;
+            pnlCustomPassword.Visible = !isJolly;
+            pnlJollyPassword.Visible = isJolly;
+
+            if (isJolly)
+            {
+                RefreshJollyList(Entry.SharedPasswordId);
+            }
+        }
+
+        private void RefreshJollyList(string selectId = null)
+        {
+            cmbJolly.Items.Clear();
+
+            if (_vault == null || _vault.SharedPasswords == null || _vault.SharedPasswords.Count == 0)
+            {
+                cmbJolly.Visible = false;
+                lblJollyEmpty.Visible = true;
+                return;
+            }
+
+            cmbJolly.Visible = true;
+            lblJollyEmpty.Visible = false;
+
+            SharedPasswordComboItem toSelect = null;
+            foreach (var sp in _vault.SharedPasswords)
+            {
+                string masked = string.IsNullOrEmpty(sp.Value) ? "vuota" : new string('●', Math.Min(sp.Value.Length, 8));
+                var item = new SharedPasswordComboItem
+                {
+                    Id = sp.Id,
+                    Name = sp.Name,
+                    MaskedValue = masked
+                };
+                cmbJolly.Items.Add(item);
+
+                if (!string.IsNullOrEmpty(selectId) && sp.Id == selectId)
+                {
+                    toSelect = item;
+                }
+            }
+
+            if (toSelect != null)
+            {
+                cmbJolly.SelectedItem = toSelect;
+            }
+            else if (cmbJolly.Items.Count > 0)
+            {
+                cmbJolly.SelectedIndex = 0;
+            }
+        }
+
+        private void OpenManageSharedPasswords()
+        {
+            string currentSelectedId = null;
+            var selectedItem = cmbJolly.SelectedItem as SharedPasswordComboItem;
+            if (selectedItem != null) currentSelectedId = selectedItem.Id;
+
+            using (var dlg = new ManageSharedPasswordsDialog(_vault, _onVaultChanged))
+            {
+                dlg.ShowDialog(this);
+            }
+
+            RefreshJollyList(currentSelectedId);
+        }
+
         private void AddTokenButton(FlowLayoutPanel panel, string token)
         {
             var btn = new Button
@@ -201,12 +361,24 @@ namespace Custode2.UI
         {
             txtTitle.Text = Entry.Title;
             txtUsername.Text = Entry.Username;
-            txtPassword.Text = Entry.Password;
             txtTemplate.Text = string.IsNullOrEmpty(Entry.Template) ? "$USER$<TAB>$PASS$<ENTER>" : Entry.Template;
             txtHotkey.Text = Entry.DirectHotkey;
             txtAppFilter.Text = Entry.AppFilter;
             chkBypassSecurity.Checked = Entry.BypassSecurityCheck;
             txtNotes.Text = Entry.Notes;
+
+            if (Entry.UsesSharedPassword)
+            {
+                rbPasswordJolly.Checked = true;
+                UpdatePasswordModeVisibility();
+                RefreshJollyList(Entry.SharedPasswordId);
+            }
+            else
+            {
+                rbPasswordCustom.Checked = true;
+                txtPassword.Text = Entry.Password;
+                UpdatePasswordModeVisibility();
+            }
         }
 
         private void BtnOk_Click(object sender, EventArgs e)
@@ -218,9 +390,25 @@ namespace Custode2.UI
                 return;
             }
 
+            if (rbPasswordJolly.Checked)
+            {
+                var selected = cmbJolly.SelectedItem as SharedPasswordComboItem;
+                if (selected == null)
+                {
+                    MessageBox.Show("Seleziona una Password Jolly oppure creane una con il pulsante 'Gestisci...'.", "Password Jolly mancante", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                Entry.SharedPasswordId = selected.Id;
+                Entry.Password = string.Empty;
+            }
+            else
+            {
+                Entry.SharedPasswordId = string.Empty;
+                Entry.Password = txtPassword.Text;
+            }
+
             Entry.Title = txtTitle.Text.Trim();
             Entry.Username = txtUsername.Text.Trim();
-            Entry.Password = txtPassword.Text;
             Entry.Template = string.IsNullOrWhiteSpace(txtTemplate.Text) ? "$USER$<TAB>$PASS$<ENTER>" : txtTemplate.Text.Trim();
             Entry.DirectHotkey = txtHotkey.Text.Trim();
             Entry.AppFilter = txtAppFilter.Text.Trim();

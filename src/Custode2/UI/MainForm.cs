@@ -112,11 +112,44 @@ namespace Custode2.UI
         {
             var pnlTop = new Panel { Dock = DockStyle.Top, Height = 50, Padding = new Padding(10) };
             var lblSearch = new Label { Text = "Cerca:", Location = new Point(10, 15), AutoSize = true };
-            txtSearch = new TextBox { Location = new Point(60, 12), Width = 340 };
+            txtSearch = new TextBox { Location = new Point(58, 12), Width = 280 };
             txtSearch.TextChanged += (s, e) => RefreshCredentialsList();
+
+            var btnMoveUp = new Button
+            {
+                Text = "⬆️ Sposta Su",
+                Location = new Point(348, 11),
+                Size = new Size(110, 28),
+                BackColor = Color.FromArgb(240, 243, 246),
+                FlatStyle = FlatStyle.Flat
+            };
+            btnMoveUp.Click += (s, e) => MoveSelectedEntry(-1);
+
+            var btnMoveDown = new Button
+            {
+                Text = "⬇️ Sposta Giù",
+                Location = new Point(464, 11),
+                Size = new Size(110, 28),
+                BackColor = Color.FromArgb(240, 243, 246),
+                FlatStyle = FlatStyle.Flat
+            };
+            btnMoveDown.Click += (s, e) => MoveSelectedEntry(1);
+
+            var btnManageJolly = new Button
+            {
+                Text = "🔑 Password Jolly...",
+                Location = new Point(580, 11),
+                Size = new Size(170, 28),
+                BackColor = Color.FromArgb(238, 244, 252),
+                FlatStyle = FlatStyle.Flat
+            };
+            btnManageJolly.Click += (s, e) => OpenSharedPasswordsManager();
 
             pnlTop.Controls.Add(lblSearch);
             pnlTop.Controls.Add(txtSearch);
+            pnlTop.Controls.Add(btnMoveUp);
+            pnlTop.Controls.Add(btnMoveDown);
+            pnlTop.Controls.Add(btnManageJolly);
 
             lvCredentials = new ListView
             {
@@ -124,14 +157,96 @@ namespace Custode2.UI
                 View = View.Details,
                 FullRowSelect = true,
                 GridLines = true,
-                MultiSelect = false
+                MultiSelect = false,
+                AllowDrop = true
             };
-            lvCredentials.Columns.Add("Titolo / Servizio", 220);
-            lvCredentials.Columns.Add("Nome Utente / Email", 210);
+            lvCredentials.Columns.Add("Titolo / Servizio", 240);
+            lvCredentials.Columns.Add("Nome Utente / Email", 200);
             lvCredentials.Columns.Add("Scorciatoia", 115);
             lvCredentials.Columns.Add("Filtro App / Sicurezza", 155);
-            lvCredentials.Columns.Add("Template Macro", 230);
+            lvCredentials.Columns.Add("Template Macro", 220);
             lvCredentials.DoubleClick += (s, e) => EditSelected();
+
+            // Keyboard shortcut support: Alt+Up / Alt+Down to move, Delete to delete
+            lvCredentials.KeyDown += (s, e) =>
+            {
+                if (e.Alt && e.KeyCode == Keys.Up)
+                {
+                    MoveSelectedEntry(-1);
+                    e.Handled = true;
+                }
+                else if (e.Alt && e.KeyCode == Keys.Down)
+                {
+                    MoveSelectedEntry(1);
+                    e.Handled = true;
+                }
+                else if (e.KeyCode == Keys.Delete)
+                {
+                    DeleteSelected();
+                    e.Handled = true;
+                }
+            };
+
+            // Drag and drop reordering
+            lvCredentials.ItemDrag += (s, e) =>
+            {
+                if (string.IsNullOrEmpty(txtSearch.Text.Trim()))
+                {
+                    lvCredentials.DoDragDrop(e.Item, DragDropEffects.Move);
+                }
+            };
+
+            lvCredentials.DragEnter += (s, e) =>
+            {
+                if (e.Data.GetDataPresent(typeof(ListViewItem)))
+                    e.Effect = DragDropEffects.Move;
+            };
+
+            lvCredentials.DragOver += (s, e) =>
+            {
+                var pt = lvCredentials.PointToClient(new Point(e.X, e.Y));
+                var targetItem = lvCredentials.GetItemAt(pt.X, pt.Y);
+                if (targetItem != null)
+                    e.Effect = DragDropEffects.Move;
+                else
+                    e.Effect = DragDropEffects.None;
+            };
+
+            lvCredentials.DragDrop += (s, e) =>
+            {
+                if (!e.Data.GetDataPresent(typeof(ListViewItem))) return;
+                var draggedItem = e.Data.GetData(typeof(ListViewItem)) as ListViewItem;
+                if (draggedItem == null) return;
+
+                var pt = lvCredentials.PointToClient(new Point(e.X, e.Y));
+                var targetItem = lvCredentials.GetItemAt(pt.X, pt.Y);
+                if (targetItem == null || targetItem == draggedItem) return;
+
+                var draggedEntry = draggedItem.Tag as CredentialEntry;
+                var targetEntry = targetItem.Tag as CredentialEntry;
+                if (draggedEntry == null || targetEntry == null) return;
+
+                int oldIdx = _vault.Entries.IndexOf(draggedEntry);
+                int targetIdx = _vault.Entries.IndexOf(targetEntry);
+                if (oldIdx < 0 || targetIdx < 0) return;
+
+                _vault.Entries.RemoveAt(oldIdx);
+                _vault.Entries.Insert(targetIdx, draggedEntry);
+
+                if (_onVaultChanged != null) _onVaultChanged();
+                RefreshCredentialsList();
+
+                foreach (ListViewItem item in lvCredentials.Items)
+                {
+                    if (item.Tag == draggedEntry)
+                    {
+                        item.Selected = true;
+                        item.Focused = true;
+                        item.EnsureVisible();
+                        break;
+                    }
+                }
+            };
 
             var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 55, Padding = new Padding(10) };
 
@@ -537,7 +652,14 @@ namespace Custode2.UI
 
             foreach (var entry in list)
             {
-                var lvi = new ListViewItem(entry.Title ?? string.Empty);
+                string titleDisplay = entry.Title ?? string.Empty;
+                if (entry.UsesSharedPassword)
+                {
+                    string jName = entry.GetSharedPasswordName(_vault);
+                    titleDisplay = string.Format("{0}  [🔑 {1}]", titleDisplay, string.IsNullOrEmpty(jName) ? "Jolly" : jName);
+                }
+
+                var lvi = new ListViewItem(titleDisplay);
                 lvi.SubItems.Add(entry.Username ?? string.Empty);
                 lvi.SubItems.Add(entry.DirectHotkey ?? string.Empty);
                 lvi.SubItems.Add(entry.AppFilter ?? (entry.BypassSecurityCheck ? "[Fidato]" : string.Empty));
@@ -707,9 +829,56 @@ namespace Custode2.UI
             }
         }
 
+        private void MoveSelectedEntry(int direction)
+        {
+            if (lvCredentials.SelectedItems.Count == 0) return;
+
+            if (!string.IsNullOrEmpty(txtSearch.Text.Trim()))
+            {
+                MessageBox.Show("Per riordinare le credenziali, cancella il testo nel campo di ricerca per visualizzare l'elenco completo.", "Riordina Credenziali", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var selectedItem = lvCredentials.SelectedItems[0];
+            var entry = selectedItem.Tag as CredentialEntry;
+            if (entry == null) return;
+
+            int oldIndex = _vault.Entries.IndexOf(entry);
+            if (oldIndex < 0) return;
+
+            int newIndex = oldIndex + direction;
+            if (newIndex < 0 || newIndex >= _vault.Entries.Count) return;
+
+            _vault.Entries.RemoveAt(oldIndex);
+            _vault.Entries.Insert(newIndex, entry);
+
+            if (_onVaultChanged != null) _onVaultChanged();
+            RefreshCredentialsList();
+
+            foreach (ListViewItem item in lvCredentials.Items)
+            {
+                if (item.Tag == entry)
+                {
+                    item.Selected = true;
+                    item.Focused = true;
+                    item.EnsureVisible();
+                    break;
+                }
+            }
+        }
+
+        private void OpenSharedPasswordsManager()
+        {
+            using (var dlg = new ManageSharedPasswordsDialog(_vault, _onVaultChanged))
+            {
+                dlg.ShowDialog(this);
+            }
+            RefreshCredentialsList();
+        }
+
         private void AddCredential()
         {
-            using (var dlg = new EditCredentialDialog())
+            using (var dlg = new EditCredentialDialog(null, _vault, _onVaultChanged))
             {
                 dlg.Entry.Template = _vault.Settings.DefaultTemplate;
                 if (dlg.ShowDialog(this) == DialogResult.OK)
@@ -745,7 +914,7 @@ namespace Custode2.UI
                             Title = !string.IsNullOrEmpty(result.WindowTitle) ? result.WindowTitle : result.ProcessName,
                             Template = _vault.Settings.DefaultTemplate
                         };
-                        using (var dlg = new EditCredentialDialog(entry))
+                        using (var dlg = new EditCredentialDialog(entry, _vault, _onVaultChanged))
                         {
                             if (dlg.ShowDialog(this) == DialogResult.OK)
                             {
@@ -771,7 +940,7 @@ namespace Custode2.UI
             var entry = lvCredentials.SelectedItems[0].Tag as CredentialEntry;
             if (entry == null) return;
 
-            using (var dlg = new EditCredentialDialog(entry))
+            using (var dlg = new EditCredentialDialog(entry, _vault, _onVaultChanged))
             {
                 if (dlg.ShowDialog(this) == DialogResult.OK)
                 {
@@ -793,6 +962,7 @@ namespace Custode2.UI
                 Title = entry.Title + " (Copia)",
                 Username = entry.Username,
                 Password = entry.Password,
+                SharedPasswordId = entry.SharedPasswordId,
                 Template = entry.Template,
                 DirectHotkey = string.Empty, // Avoid hotkey collision
                 AppFilter = entry.AppFilter,
@@ -839,7 +1009,7 @@ namespace Custode2.UI
                 timer.Stop();
                 timer.Dispose();
                 IntPtr target = Macro.NativeMethods.GetForegroundWindow();
-                Macro.MacroEngine.Execute(entry, target, _vault.Settings, _onVaultChanged);
+                Macro.MacroEngine.Execute(entry, target, _vault.Settings, _vault, _onVaultChanged);
             };
             timer.Start();
         }

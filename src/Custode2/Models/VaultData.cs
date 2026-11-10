@@ -9,12 +9,14 @@ namespace Custode2.Models
         public int Version { get; set; }
         public AppSettings Settings { get; set; }
         public List<CredentialEntry> Entries { get; set; }
+        public List<SharedPassword> SharedPasswords { get; set; }
 
         public VaultData()
         {
             Version = 2;
             Settings = new AppSettings();
             Entries = new List<CredentialEntry>();
+            SharedPasswords = new List<SharedPassword>();
         }
     }
 }

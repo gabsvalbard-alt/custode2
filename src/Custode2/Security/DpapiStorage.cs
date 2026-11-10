@@ -67,6 +67,10 @@ namespace Custode2.Security
                     {
                         data.Entries = new System.Collections.Generic.List<CredentialEntry>();
                     }
+                    if (data.SharedPasswords == null)
+                    {
+                        data.SharedPasswords = new System.Collections.Generic.List<SharedPassword>();
+                    }
                     return data;
                 }
                 catch (CryptographicException)

@@ -9,6 +9,7 @@ namespace Custode2.Models
         public string Title { get; set; }
         public string Username { get; set; }
         public string Password { get; set; }
+        public string SharedPasswordId { get; set; }
         public string Template { get; set; }
         public string DirectHotkey { get; set; }
         public string AppFilter { get; set; }
@@ -17,12 +18,44 @@ namespace Custode2.Models
         public DateTime CreatedAt { get; set; }
         public DateTime? LastUsedAt { get; set; }
 
+        public bool UsesSharedPassword
+        {
+            get { return !string.IsNullOrEmpty(SharedPasswordId); }
+        }
+
+        public string ResolvePassword(VaultData vault)
+        {
+            if (!string.IsNullOrEmpty(SharedPasswordId) && vault != null && vault.SharedPasswords != null)
+            {
+                var sp = vault.SharedPasswords.Find(p => p.Id == SharedPasswordId);
+                if (sp != null)
+                {
+                    return sp.Value ?? string.Empty;
+                }
+            }
+            return Password ?? string.Empty;
+        }
+
+        public string GetSharedPasswordName(VaultData vault)
+        {
+            if (!string.IsNullOrEmpty(SharedPasswordId) && vault != null && vault.SharedPasswords != null)
+            {
+                var sp = vault.SharedPasswords.Find(p => p.Id == SharedPasswordId);
+                if (sp != null)
+                {
+                    return sp.Name ?? string.Empty;
+                }
+            }
+            return string.Empty;
+        }
+
         public CredentialEntry()
         {
             Id = Guid.NewGuid().ToString("N");
             Title = string.Empty;
             Username = string.Empty;
             Password = string.Empty;
+            SharedPasswordId = string.Empty;
             Template = "$USER$<TAB>$PASS$<ENTER>";
             DirectHotkey = string.Empty;
             AppFilter = string.Empty;
